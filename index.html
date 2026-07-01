@@ -234,7 +234,7 @@
 
     .plan-list {
       position: relative;
-      min-height: 1080px;
+      min-height: 810px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
@@ -243,7 +243,7 @@
 
     .day-timeline {
       position: relative;
-      min-height: 1080px;
+      min-height: 810px;
       display: grid;
       grid-template-columns: 58px 1fr;
     }
@@ -2415,22 +2415,34 @@
         return;
       }
       const colors = ["#e36b7f", "#4d7cc7", "#3da989", "#d99825", "#7c3aed", "#e0523f"];
+      const timelineStart = 6 * 60;
+      const timelineEnd = 24 * 60;
+      const timelineMinutes = timelineEnd - timelineStart;
       root.innerHTML = `
         <div class="day-timeline">
-          ${Array.from({ length: 24 }, (_, hour) => `
+          ${Array.from({ length: 18 }, (_, index) => {
+            const hour = index + 6;
+            return `
             <div class="timeline-hour">
               <div class="timeline-label">${String(hour).padStart(2, "0")}:00</div>
               <div class="timeline-line"></div>
             </div>
-          `).join("")}
+          `;
+          }).join("")}
           <div class="timeline-events"></div>
         </div>
       `;
       const eventLayer = root.querySelector(".timeline-events");
       [...state.plans].sort((a, b) => a.start.localeCompare(b.start)).forEach((plan, index) => {
         const start = timeToMinutes(plan.start);
-        const top = start / 1440 * 100;
-        const height = Math.min(100 - top, Math.max(32 / 1080 * 100, plan.minutes / 1440 * 100));
+        const end = start + plan.minutes;
+        const visibleStart = Math.max(start, timelineStart);
+        const visibleEnd = Math.min(end, timelineEnd);
+        if (visibleEnd <= timelineStart || visibleStart >= timelineEnd) return;
+        const top = (visibleStart - timelineStart) / timelineMinutes * 100;
+        const visibleMinutes = Math.max(15, visibleEnd - visibleStart);
+        const minHeight = 32 / 810 * 100;
+        const height = Math.min(100 - top, Math.max(minHeight, visibleMinutes / timelineMinutes * 100));
         const row = document.createElement("div");
         row.className = `plan-item${plan.done ? " done" : ""}`;
         row.style.setProperty("--top", `${top}%`);
