@@ -705,6 +705,24 @@
       display: none;
     }
 
+    .chapter-map-image {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+
+    .world-map.map-chapter.map-chapter-germany::before {
+      z-index: 1;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.12)),
+        linear-gradient(90deg, transparent 24%, rgba(77,124,199,.05) 25%, transparent 26%, transparent 49%, rgba(77,124,199,.05) 50%, transparent 51%, transparent 74%, rgba(77,124,199,.05) 75%, transparent 76%),
+        linear-gradient(0deg, transparent 32%, rgba(77,124,199,.05) 33%, transparent 34%, transparent 65%, rgba(77,124,199,.05) 66%, transparent 67%);
+    }
+
     .chapter-art {
       position: absolute;
       inset: 0;
@@ -3945,34 +3963,7 @@
     function chapterMapArtwork(chapter) {
       if (chapter?.name !== "德国起点") return "";
       return `
-        <svg class="chapter-art" viewBox="0 0 420 250" aria-hidden="true">
-          <path class="land" d="M86 30 C130 15 195 18 246 32 C302 48 338 83 350 128 C365 183 325 217 260 226 C194 236 126 220 82 188 C36 154 34 92 86 30Z"/>
-          <path class="sketch" d="M93 37 C137 24 191 25 239 39 C291 54 327 88 340 132 C353 179 316 209 258 218 C197 228 132 214 90 183 C47 151 49 93 93 37Z"/>
-          <path class="state" d="M70 69 C111 41 166 43 210 59 C236 68 251 92 244 124 C236 164 192 190 143 184 C91 177 55 139 66 101 C68 88 71 78 70 69Z"/>
-          <path class="state" d="M219 86 C264 75 316 92 339 129 C361 164 342 202 296 216 C246 232 199 207 191 165 C184 126 193 95 219 86Z"/>
-          <path class="forest" d="M54 151 C70 132 96 128 117 142 C135 154 134 179 111 189 C84 201 52 184 54 151Z"/>
-          <path class="forest" d="M88 178 C118 160 151 167 164 191 C132 207 101 202 88 178Z"/>
-          <path class="forest" d="M250 90 C281 74 314 84 328 109 C303 127 264 121 250 90Z"/>
-          <path class="river" d="M30 42 C65 62 84 84 94 111 C110 150 146 170 189 169"/>
-          <path class="river" d="M78 118 C111 116 140 105 166 86 C187 72 207 67 232 72"/>
-          <path class="river" d="M164 172 C196 185 232 190 269 184 C296 179 319 167 337 150"/>
-          <path class="mountain" d="M238 207 L256 174 L276 210 Z"/>
-          <path class="mountain" d="M272 214 L292 178 L318 219 Z"/>
-          <path class="mountain" d="M306 212 L326 184 L351 218 Z"/>
-          <path class="doodle" d="M116 168 c8 -7 19 -9 29 -5"/>
-          <path class="doodle" d="M137 82 c10 -11 28 -13 42 -5"/>
-          <path class="doodle" d="M233 139 c11 -8 27 -9 41 -2"/>
-          <path class="doodle" d="M54 93 c8 -5 19 -6 28 -2"/>
-          <circle cx="126" cy="166" r="3" fill="rgba(227,107,127,.42)"/>
-          <circle cx="151" cy="128" r="3" fill="rgba(227,107,127,.38)"/>
-          <circle cx="118" cy="78" r="3" fill="rgba(227,107,127,.34)"/>
-          <circle cx="307" cy="181" r="3" fill="rgba(227,107,127,.34)"/>
-          <text x="46" y="47">Rhein</text>
-          <text x="91" y="112">Neckar</text>
-          <text x="252" y="236">Alpen</text>
-          <text x="58" y="214">Baden-Wurttemberg</text>
-          <text x="287" y="88">Bayern</text>
-        </svg>
+        <img class="chapter-map-image" src="assets/visual/generated/map-germany-tuebingen-handdrawn.png" alt="" aria-hidden="true">
       `;
     }
 
