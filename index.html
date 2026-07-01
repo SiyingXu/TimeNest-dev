@@ -1288,20 +1288,32 @@
     }
 
     .map-pin.task-bubble.active {
-      width: auto;
-      min-width: 70px;
-      height: auto;
-      border-radius: 8px;
-      padding: 7px 9px;
-      font-size: 12px;
+      width: 34px;
+      min-width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      padding: 0;
+      font-size: 0;
+      border-color: rgba(227,107,127,.84);
+      box-shadow: 0 0 0 6px rgba(227,107,127,.18), 0 12px 24px rgba(31,41,55,.18);
     }
 
     .map-pin.task-bubble.active::before {
-      display: block;
+      display: none;
     }
 
     .map-pin.task-bubble.active::after {
-      display: none;
+      display: grid;
+      width: 18px;
+      height: 18px;
+      background: #94a3b8;
+      color: #fff;
+      font-size: 10px;
+    }
+
+    .map-pin.task-bubble.active.owned::after {
+      content: "✓";
+      background: #3da989;
     }
 
     .card-top {
@@ -1977,6 +1989,11 @@
     .city-task.done {
       border-color: #b7ded1;
       background: #f1fff9;
+    }
+
+    .city-task.selected {
+      border-color: rgba(227,107,127,.5);
+      box-shadow: 0 0 0 4px rgba(227,107,127,.1);
     }
 
     .city-task.travel-ticket-task {
@@ -4268,20 +4285,18 @@
         pin.style.setProperty("--y", `${item.y}%`);
         pin.dataset.rewardId = item.id;
         pin.dataset.short = taskShortMark(item);
-        pin.textContent = cityTaskItems
-          ? active ? cityTaskLabel(item, currentCity) : ""
-          : item.name.replace("城市卡", "").replace("徽章", "").replace("基金", "").replace("体验", "");
+        pin.textContent = cityTaskItems ? "" : item.name.replace("城市卡", "").replace("徽章", "").replace("基金", "").replace("体验", "");
         pin.title = locked ? unlockHint(item) : `${item.name}\n${item.cardLine || item.desc}`;
         pin.addEventListener("click", () => {
-          selectReward(item.id, { stayOnMap: Boolean(item.zoomTo) });
-          if (item.zoomTo) zoomMap(item.zoomTo);
+          selectReward(item.id, { stayOnMap: Boolean(cityTaskItems || item.zoomTo) });
+          if (!cityTaskItems && item.zoomTo) zoomMap(item.zoomTo);
         });
         map.appendChild(pin);
       });
       const caption = document.createElement("div");
       caption.className = "map-caption";
       caption.textContent = captionFor(mapMode);
-      map.appendChild(caption);
+      if (!mapMode.includes("-city")) map.appendChild(caption);
 
       if (mapMode.includes("-city")) renderCurrentCityCard();
       else renderSelectedCard();
@@ -4490,7 +4505,7 @@
         ` : ""}
         <div class="city-task-list">
           ${cityCard ? `
-            <div class="city-task${isOwned(cityCard) ? " done" : ""}${isUnlocked(cityCard) ? "" : " locked"}" data-task-reward="${cityCard.id}">
+            <div class="city-task${selectedRewardId === cityCard.id ? " selected" : ""}${isOwned(cityCard) ? " done" : ""}${isUnlocked(cityCard) ? "" : " locked"}" data-task-reward="${cityCard.id}">
               <div class="city-task-icon">${cityCard.icon}</div>
               <div class="city-task-copy">
                 <strong>${cityCard.name}</strong>
@@ -4503,7 +4518,7 @@
             const owned = isOwned(item);
             const unlocked = isUnlocked(item);
             return `
-              <div class="city-task${owned ? " done" : ""}${unlocked ? "" : " locked"}" data-task-reward="${item.id}">
+              <div class="city-task${selectedRewardId === item.id ? " selected" : ""}${owned ? " done" : ""}${unlocked ? "" : " locked"}" data-task-reward="${item.id}">
                 <div class="city-task-icon">${owned ? "✓" : item.stamp || item.icon}</div>
                 <div class="city-task-copy">
                   <strong>${item.name.replace(`${city.name} · `, "")}</strong>
@@ -4514,7 +4529,7 @@
             `;
           }).join("")}
           ${ticket ? `
-            <div class="city-task travel-ticket-task${ticketReady ? "" : " locked"}" data-travel-ticket="${ticket.id}">
+            <div class="city-task travel-ticket-task${selectedRewardId === ticket.id ? " selected" : ""}${ticketReady ? "" : " locked"}" data-travel-ticket="${ticket.id}">
               <div class="city-task-icon">${ticket.type.includes("机票") ? "AIR" : "RAIL"}</div>
               <div class="city-task-copy">
                 <strong>${city.name} → ${ticket.to.name}</strong>
@@ -4534,8 +4549,13 @@
         });
       });
       root.querySelector("[data-travel-ticket]")?.addEventListener("click", event => {
-        if (!event.target.closest("button")) return;
-        buyTravelTicket();
+        const ticket = currentTravelTicket();
+        if (!ticket) return;
+        if (event.target.closest("button")) {
+          buyTravelTicket();
+          return;
+        }
+        selectReward(ticket.id, { stayOnMap: true });
       });
     }
 
