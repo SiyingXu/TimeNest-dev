@@ -737,6 +737,12 @@
     .map-pin.owned {
       border-color: rgba(61, 169, 137, .55);
       background: #f1fff9;
+      box-shadow: 0 0 0 3px rgba(61,169,137,.16), 0 12px 24px rgba(31,41,55,.16);
+    }
+
+    .map-pin.completed-city {
+      background: #ecfdf3;
+      color: #17644f;
     }
 
     .map-pin.locked {
@@ -3101,6 +3107,12 @@
       return "";
     }
 
+    function cityVisualMapMode(cityId) {
+      if (cityId === "tuebingen") return "tuebingen-city";
+      if (cityId === "shanghai") return "shanghai-city";
+      return "world";
+    }
+
     function journeyChapters() {
       return [...new Set(journeyCities.map(city => city.chapter))].map(name => {
         const cities = journeyCities.filter(city => city.chapter === name);
@@ -3154,9 +3166,14 @@
       document.querySelector("#wishCount").textContent = ownedRewardsBy("wish").length;
       renderJourneyPanel();
 
+      const currentIndex = currentJourneyIndex();
+      const currentCity = journeyCities[currentIndex];
+      const previousCity = journeyCities[currentIndex - 1];
+      const nextCity = journeyCities[currentIndex + 1];
+      const visualMode = mapMode === "world" ? cityVisualMapMode(currentCity.id) : mapMode;
       const map = document.querySelector("#worldMap");
       const wasZooming = map.classList.contains("map-zooming");
-      map.className = `world-map map-${mapMode}${wasZooming ? " map-zooming" : ""}`;
+      map.className = `world-map map-${visualMode}${wasZooming ? " map-zooming" : ""}`;
       map.innerHTML = mapArtwork(mapMode);
       const trail = document.createElement("div");
       trail.className = `map-trail${mapMode === "world" ? "" : " in-region"}`;
@@ -3164,10 +3181,8 @@
       trail.innerHTML = layerText.map((label, index) => `<span class="${index === layerText.length - 1 ? "active" : ""}">${label}</span>`).join("");
       map.appendChild(trail);
       if (mapMode === "world") {
-        const currentIndex = currentJourneyIndex();
-        const currentCity = journeyCities[currentIndex];
-        const nextCity = journeyCities[currentIndex + 1];
-        [currentCity, nextCity]
+        const routePins = visualMode === "world" ? [previousCity, currentCity, nextCity] : [currentCity];
+        routePins
           .filter(Boolean)
           .filter((city, index, cities) => cities.findIndex(item => item.id === city.id) === index)
           .forEach(city => {
@@ -3177,20 +3192,41 @@
           pin.className = [
             "map-pin",
             isCityCompleted(city.id) ? "owned" : "",
+            city.id === previousCity?.id ? "completed-city" : "",
             city.id === currentCity.id ? "active" : "",
             city.id === nextCity?.id ? "next-stop" : "",
             !isUnlocked(item) ? "locked" : ""
           ].filter(Boolean).join(" ");
           pin.style.setProperty("--x", `${city.x}%`);
           pin.style.setProperty("--y", `${city.y}%`);
-          pin.textContent = city.id === currentCity.id ? `当前：${city.name}` : `下一站：${city.name}`;
+          pin.textContent = city.id === previousCity?.id ? `已完成：${city.name}` : city.id === currentCity.id ? `当前：${city.name}` : `下一站：${city.name}`;
           pin.title = isUnlocked(item) ? `${city.chapter} · ${cityProgress(city.id)}/3` : unlockHint(item);
           pin.addEventListener("click", () => selectReward(item.id));
           map.appendChild(pin);
         });
+        if (visualMode !== "world") {
+          currentCityItems().visits.forEach((item, index) => {
+            const pin = document.createElement("button");
+            const owned = isOwned(item);
+            const locked = !isUnlocked(item);
+            pin.className = [
+              "map-pin",
+              owned ? "owned" : "",
+              locked ? "locked" : ""
+            ].filter(Boolean).join(" ");
+            pin.style.setProperty("--x", `${22 + index * 24}%`);
+            pin.style.setProperty("--y", `${68 - index * 12}%`);
+            pin.textContent = item.name.replace(`${currentCity.name} · `, "");
+            pin.title = locked ? unlockHint(item) : item.name;
+            pin.addEventListener("click", () => selectReward(item.id, { stayOnMap: true }));
+            map.appendChild(pin);
+          });
+        }
         const caption = document.createElement("div");
         caption.className = "map-caption";
-        caption.textContent = nextCity ? `完成 3 章后前往 ${nextCity.name}` : "环球路线收官";
+        caption.textContent = visualMode === "world"
+          ? (nextCity ? `完成 3 章后前往 ${nextCity.name}` : "环球路线收官")
+          : `${currentCity.name}城市地图 · 完成 3 章点亮城市`;
         map.appendChild(caption);
         renderCurrentCityCard();
         return;
@@ -3853,6 +3889,7 @@
             return;
           }
           const deposit = Math.min(left, state.coins, 100);
+          if (!window.confirm(`确认向「${item.name}」存入 ${deposit} 金币吗？`)) return;
           state.funds[item.id] = fundedAmount(item) + deposit;
           spendCoins(deposit, `存入「${item.name}」基金`);
           if (state.funds[item.id] >= item.price) {
@@ -3871,6 +3908,7 @@
         showToast("金币还不够，先去完成一个小任务或专注计时。");
         return;
       }
+      if (item.price > 0 && !window.confirm(`确认花费 ${item.price} 金币兑换「${item.name}」吗？`)) return;
       state.ownedRewards.push(item.id);
       selectedRewardId = item.id;
       spendCoins(item.price, `购买「${item.name}」`);
