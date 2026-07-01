@@ -1914,6 +1914,117 @@
       gap: 12px;
     }
 
+    .chapter-preview {
+      width: min(410px, 100%);
+      max-height: min(720px, calc(100vh - 36px));
+      overflow: hidden;
+      border: 1px solid rgba(111,78,45,.28);
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 12% 10%, rgba(240,197,93,.2), transparent 20%),
+        linear-gradient(90deg, rgba(111,78,45,.1) 0 1px, transparent 1px 50%),
+        linear-gradient(180deg, #fffaf0, #f6ead8);
+      background-size: auto, 18px 18px, auto;
+      box-shadow: 0 24px 60px rgba(31,41,55,.32);
+      padding: 12px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .card-modal.active .chapter-preview {
+      animation: cardDraw 240ms ease both;
+    }
+
+    .chapter-preview-map {
+      border: 1px solid rgba(31,41,55,.1);
+      border-radius: 8px;
+      background: rgba(255,255,255,.58);
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+      overflow: auto;
+    }
+
+    .chapter-preview-city {
+      border: 1px solid rgba(31,41,55,.1);
+      border-radius: 8px;
+      background: #fff;
+      padding: 9px;
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      align-items: center;
+      gap: 8px;
+      text-align: left;
+      color: var(--ink);
+    }
+
+    .chapter-preview-city.done {
+      border-color: #b7ded1;
+      background: #eef7f3;
+    }
+
+    .chapter-preview-city.current {
+      border-color: rgba(227,107,127,.45);
+      background: #fff1f4;
+    }
+
+    .chapter-preview-city.locked {
+      opacity: .58;
+      filter: grayscale(.35);
+    }
+
+    .chapter-preview-city i {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #edf1f5;
+      display: grid;
+      place-items: center;
+      font-style: normal;
+      font-size: 12px;
+      font-weight: 950;
+    }
+
+    .chapter-preview-city.done i {
+      background: #3da989;
+      color: #fff;
+    }
+
+    .chapter-preview-city.current i {
+      background: #e36b7f;
+      color: #fff;
+    }
+
+    .chapter-preview-city strong {
+      display: block;
+      font-size: 13px;
+    }
+
+    .chapter-preview-city span {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.3;
+    }
+
+    .chapter-preview-prize {
+      border: 1px dashed rgba(227,107,127,.38);
+      border-radius: 8px;
+      background: rgba(255,241,244,.7);
+      padding: 10px;
+      display: grid;
+      gap: 4px;
+    }
+
+    .chapter-preview-prize strong {
+      font-size: 13px;
+    }
+
+    .chapter-preview-prize span {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
     .shelf-head {
       display: flex;
       align-items: start;
@@ -3632,7 +3743,7 @@
           </div>
           <div class="route-chapter-list" aria-label="完整环球路线目录">
             ${chapters.map(chapter => `
-              <div class="route-chapter-card${chapter.active ? " active" : ""}${chapter.completed ? " done" : ""}${chapter.unlocked ? "" : " locked"}">
+              <div class="route-chapter-card${chapter.active ? " active" : ""}${chapter.completed ? " done" : ""}${chapter.unlocked ? "" : " locked"}" data-preview-chapter="${chapter.index}">
                 <div class="route-chapter-head">
                   <strong>${chapter.index + 1}. ${chapter.name}</strong>
                   <span>${chapter.done}/${chapter.cities.length} 城</span>
@@ -3665,7 +3776,8 @@
         });
       });
       root.querySelectorAll("[data-route-city]").forEach(button => {
-        button.addEventListener("click", () => {
+        button.addEventListener("click", event => {
+          event.stopPropagation();
           const city = journeyCityById(button.dataset.routeCity);
           const card = city && journeyCityCard(city.id);
           if (card) selectReward(card.id);
@@ -3674,9 +3786,13 @@
       root.querySelectorAll("[data-chapter-index]").forEach(button => {
         button.addEventListener("click", () => {
           const chapter = chapters[Number(button.dataset.chapterIndex)];
-          const city = chapter?.cities.find(item => item.id === current.id) || chapter?.cities[0];
-          const card = city && journeyCityCard(city.id);
-          if (card) selectReward(card.id);
+          if (chapter) openChapterPreview(chapter);
+        });
+      });
+      root.querySelectorAll("[data-preview-chapter]").forEach(card => {
+        card.addEventListener("click", () => {
+          const chapter = chapters[Number(card.dataset.previewChapter)];
+          if (chapter) openChapterPreview(chapter);
         });
       });
     }
@@ -4117,6 +4233,61 @@
       const modal = document.querySelector("#cardModal");
       modal.classList.remove("active");
       modal.setAttribute("aria-hidden", "true");
+    }
+
+    function openChapterPreview(chapter) {
+      const current = journeyCities[currentJourneyIndex()];
+      const modal = document.querySelector("#cardModal");
+      const status = chapter.completed ? "章节完成" : chapter.active ? "进行中" : chapter.unlocked ? "已开放" : "未解锁";
+      modal.innerHTML = `
+        <div class="chapter-preview" role="dialog" aria-label="${chapter.name}章节预览">
+          <div class="shelf-head">
+            <div>
+              <h3>${chapter.index + 1}. ${chapter.name}</h3>
+              <p>${status} · ${chapter.done}/${chapter.cities.length} 城已抵达。点城市可以查看对应城市卡。</p>
+            </div>
+            <button class="card-close" id="closeChapter">×</button>
+          </div>
+          <div class="chapter-preview-prize">
+            <strong>${chapter.name} · 章节纪念徽章</strong>
+            <span>${chapter.completed ? "本章城市已经全部点亮，小猪护照可收录章节纪念章。" : `抵达本章全部 ${chapter.cities.length} 座城市后点亮。`}</span>
+          </div>
+          <div class="chapter-preview-map">
+            ${chapter.cities.map((city, index) => {
+              const arrived = state.travel.arrivedCities.includes(city.id);
+              const isCurrent = city.id === current.id;
+              const unlocked = chapter.unlocked && (arrived || isCurrent || index <= chapter.done);
+              const mark = arrived && !isCurrent ? "✓" : isCurrent ? "●" : unlocked ? "→" : "□";
+              return `
+                <button class="chapter-preview-city${arrived ? " done" : ""}${isCurrent ? " current" : ""}${unlocked ? "" : " locked"}" data-chapter-city="${city.id}" type="button">
+                  <i>${mark}</i>
+                  <span>
+                    <strong>${city.name}</strong>
+                    <span>${city.country} · ${cityProgress(city.id)}/3 章 · ${city.visits.join(" / ")}</span>
+                  </span>
+                  <span>${arrived ? "已抵达" : isCurrent ? "当前" : unlocked ? "待前往" : "锁定"}</span>
+                </button>
+              `;
+            }).join("")}
+          </div>
+        </div>
+      `;
+      modal.classList.add("active");
+      modal.setAttribute("aria-hidden", "false");
+      document.querySelector("#closeChapter").addEventListener("click", closeCardPreview);
+      modal.querySelectorAll("[data-chapter-city]").forEach(button => {
+        button.addEventListener("click", () => {
+          const city = journeyCityById(button.dataset.chapterCity);
+          const card = city && journeyCityCard(city.id);
+          if (!card) return;
+          closeCardPreview();
+          selectReward(card.id);
+          showToast(`已定位到：${city.name}城市卡`);
+        });
+      });
+      modal.addEventListener("click", event => {
+        if (event.target === modal) closeCardPreview();
+      }, { once: true });
     }
 
     function openCityShelf() {
