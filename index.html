@@ -2099,6 +2099,143 @@
       line-height: 1.35;
     }
 
+    .arrival-modal {
+      width: min(390px, 100%);
+      border: 1px solid rgba(111,78,45,.28);
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 18% 14%, rgba(255,255,255,.84), transparent 20%),
+        repeating-linear-gradient(-7deg, rgba(111,78,45,.055) 0 2px, transparent 2px 14px),
+        linear-gradient(180deg, #fffaf0, #ffeef4 58%, #eef8f4);
+      box-shadow: 0 24px 60px rgba(31,41,55,.32);
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .card-modal.active .arrival-modal {
+      animation: arrivalPop 320ms ease both;
+    }
+
+    @keyframes arrivalPop {
+      from { opacity: 0; transform: translateY(20px) scale(.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .arrival-hero {
+      position: relative;
+      min-height: 160px;
+      border: 1px solid rgba(31,41,55,.12);
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 18% 72%, rgba(61,169,137,.18), transparent 20%),
+        radial-gradient(circle at 80% 22%, rgba(240,197,93,.22), transparent 22%),
+        linear-gradient(135deg, rgba(255,255,255,.82), rgba(255,255,255,.45));
+      overflow: hidden;
+    }
+
+    .arrival-ticket {
+      position: absolute;
+      left: 16px;
+      top: 18px;
+      width: 150px;
+      border: 1px dashed rgba(31,41,55,.28);
+      border-radius: 8px;
+      background: rgba(255,255,255,.88);
+      padding: 9px;
+      transform: rotate(-4deg);
+      box-shadow: 0 12px 22px rgba(31,41,55,.12);
+    }
+
+    .arrival-ticket strong,
+    .arrival-city-card strong {
+      display: block;
+      font-size: 13px;
+      line-height: 1.2;
+    }
+
+    .arrival-ticket span,
+    .arrival-city-card span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.25;
+    }
+
+    .arrival-city-card {
+      position: absolute;
+      right: 14px;
+      bottom: 14px;
+      width: 146px;
+      min-height: 104px;
+      border: 1px solid rgba(31,41,55,.16);
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.3), rgba(255,255,255,.78)),
+        var(--card-color, #eff7f4);
+      padding: 9px;
+      box-shadow: 0 15px 28px rgba(31,41,55,.16);
+      animation: cardFlipIn 520ms ease both;
+    }
+
+    @keyframes cardFlipIn {
+      from { opacity: 0; transform: translateY(14px) rotateY(-24deg) rotate(3deg); }
+      to { opacity: 1; transform: translateY(0) rotateY(0) rotate(1deg); }
+    }
+
+    .arrival-stamp {
+      position: absolute;
+      left: 96px;
+      top: 74px;
+      width: 86px;
+      height: 86px;
+      border: 4px solid rgba(227,107,127,.82);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #9b2942;
+      font-size: 12px;
+      font-weight: 950;
+      transform: rotate(-14deg);
+      background: rgba(255,241,244,.36);
+      animation: stampDrop 480ms ease 160ms both;
+    }
+
+    @keyframes stampDrop {
+      0% { opacity: 0; transform: translateY(-24px) scale(1.3) rotate(-20deg); }
+      62% { opacity: 1; transform: translateY(3px) scale(.94) rotate(-14deg); }
+      100% { opacity: 1; transform: translateY(0) scale(1) rotate(-14deg); }
+    }
+
+    .arrival-route {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: #435064;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .arrival-route b {
+      border: 1px solid rgba(31,41,55,.1);
+      border-radius: 999px;
+      background: rgba(255,255,255,.72);
+      padding: 5px 8px;
+    }
+
+    .arrival-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .arrival-actions button {
+      min-height: 42px;
+    }
+
     .shelf-head {
       display: flex;
       align-items: start;
@@ -4290,8 +4427,10 @@
       selectedRewardId = nextCardId;
       mapMode = "world";
       activeRewardSection = "city";
+      const nextCard = journeyCityCard(ticket.to.id);
       saveState();
       render();
+      openArrivalModal(ticket, nextCard);
       showToast(`已抵达 ${ticket.to.name}，新的城市章开放了。`);
     }
 
@@ -4366,6 +4505,50 @@
       const modal = document.querySelector("#cardModal");
       modal.classList.remove("active");
       modal.setAttribute("aria-hidden", "true");
+    }
+
+    function openArrivalModal(ticket, cityCard) {
+      const modal = document.querySelector("#cardModal");
+      const stamp = cityCard?.stamp || journeyStamp(ticket.to);
+      const visits = ticket.to.visits.join(" / ");
+      modal.innerHTML = `
+        <div class="arrival-modal" role="dialog" aria-label="抵达${ticket.to.name}">
+          <div class="shelf-head">
+            <div>
+              <h3>已抵达 ${ticket.to.name}</h3>
+              <p>${ticket.type}入册，小猪护照盖下新的旅行章。</p>
+            </div>
+            <button class="card-close" id="closeArrival" type="button">×</button>
+          </div>
+          <div class="arrival-route"><b>${ticket.from.name}</b><span>→</span><b>${ticket.to.name}</b></div>
+          <div class="arrival-hero">
+            <div class="arrival-ticket">
+              <strong>${ticket.type}</strong>
+              <span>${ticket.from.name} → ${ticket.to.name}<br>${ticket.price} 金币</span>
+            </div>
+            <div class="arrival-stamp">${stamp}<br>ARRIVED</div>
+            <div class="arrival-city-card" style="--card-color:${cityCard?.color || "#eff7f4"}">
+              <strong>${ticket.to.name}城市卡</strong>
+              <span>${ticket.to.country} · ${ticket.to.chapter}<br>${visits}</span>
+            </div>
+          </div>
+          <div class="arrival-actions">
+            <button class="secondary" id="closeArrivalAction" type="button">继续旅程</button>
+            <button class="primary" id="viewArrivalCard" type="button">查看城市卡</button>
+          </div>
+        </div>`;
+      modal.classList.add("active");
+      modal.setAttribute("aria-hidden", "false");
+      document.querySelector("#closeArrival").addEventListener("click", closeCardPreview);
+      document.querySelector("#closeArrivalAction").addEventListener("click", closeCardPreview);
+      document.querySelector("#viewArrivalCard").addEventListener("click", () => {
+        if (!cityCard) return;
+        closeCardPreview();
+        showRewardDetail(cityCard);
+      });
+      modal.addEventListener("click", event => {
+        if (event.target === modal) closeCardPreview();
+      }, { once: true });
     }
 
     function openChapterPreview(chapter) {
