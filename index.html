@@ -3897,6 +3897,19 @@
       return "world";
     }
 
+    function openJourneyCity(city) {
+      if (!city) return;
+      const card = journeyCityCard(city.id);
+      if (!card) return;
+      const cityMode = cityVisualMapMode(city.id);
+      if (city.id === state.travel.currentCityId && cityMode !== "world") {
+        selectedRewardId = card.id;
+        zoomMap(cityMode);
+        return;
+      }
+      selectReward(card.id);
+    }
+
     function journeyChapters() {
       return [...new Set(journeyCities.map(city => city.chapter))].map((name, index) => {
         const cities = journeyCities.filter(city => city.chapter === name);
@@ -4033,16 +4046,14 @@
       root.querySelectorAll("[data-city-id]").forEach(button => {
         button.addEventListener("click", () => {
           const city = journeyCityById(button.dataset.cityId);
-          const card = city && journeyCityCard(city.id);
-          if (card) selectReward(card.id);
+          openJourneyCity(city);
         });
       });
       root.querySelectorAll("[data-route-city]").forEach(button => {
         button.addEventListener("click", event => {
           event.stopPropagation();
           const city = journeyCityById(button.dataset.routeCity);
-          const card = city && journeyCityCard(city.id);
-          if (card) selectReward(card.id);
+          openJourneyCity(city);
         });
       });
       root.querySelectorAll("[data-chapter-index]").forEach(button => {
@@ -4127,7 +4138,7 @@
           const nodeMark = state.travel.arrivedCities.includes(city.id) && city.id !== currentCity.id ? "✓" : city.id === currentCity.id ? "●" : city.id === nextCity?.id ? "→" : "□";
           pin.innerHTML = `<span class="node-mark">${nodeMark}</span><span class="node-name">${city.name}</span>`;
           pin.title = isUnlocked(item) ? `${city.chapter} · ${cityProgress(city.id)}/3` : unlockHint(item);
-          pin.addEventListener("click", () => selectReward(item.id));
+          pin.addEventListener("click", () => openJourneyCity(city));
           map.appendChild(pin);
         });
         if (visualMode !== "world" && visualMode !== "chapter") {
