@@ -1,4 +1,4 @@
-const CACHE_NAME = "timenest-pwa-v14";
+const CACHE_NAME = "timenest-pwa-v15";
 
 const APP_SHELL = [
   "./",

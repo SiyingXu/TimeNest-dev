@@ -693,6 +693,54 @@
       border-color: rgba(160,130,93,.38);
     }
 
+    .map-chapter-germany {
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.2)),
+        radial-gradient(circle at 18% 16%, rgba(255,255,255,.72), transparent 20%),
+        linear-gradient(135deg, #d8edf1 0%, #f8f2df 52%, #eef6ef 100%);
+    }
+
+    .chapter-art {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .chapter-art .land {
+      fill: rgba(245, 231, 198, .82);
+      stroke: rgba(111, 78, 45, .22);
+      stroke-width: 2.2;
+    }
+
+    .chapter-art .state {
+      fill: rgba(141, 180, 134, .24);
+      stroke: rgba(77, 124, 103, .18);
+      stroke-width: 1.3;
+    }
+
+    .chapter-art .river {
+      fill: none;
+      stroke: rgba(77,124,199,.34);
+      stroke-width: 2.4;
+      stroke-linecap: round;
+      stroke-dasharray: 4 6;
+    }
+
+    .chapter-art .mountain {
+      fill: rgba(143, 114, 78, .18);
+      stroke: rgba(111, 78, 45, .16);
+      stroke-width: 1;
+    }
+
+    .chapter-art text {
+      fill: rgba(67,80,100,.5);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
     .chapter-path {
       position: absolute;
       left: 8%;
@@ -3689,6 +3737,15 @@
     }
 
     function chapterCityPosition(chapter, city) {
+      const custom = {
+        "德国起点": {
+          tuebingen: { x: 25, y: 68 },
+          stuttgart: { x: 33, y: 50 },
+          heidelberg: { x: 29, y: 30 },
+          munich: { x: 74, y: 70 }
+        }
+      };
+      if (custom[chapter.name]?.[city.id]) return custom[chapter.name][city.id];
       const index = chapter.cities.findIndex(item => item.id === city.id);
       const count = Math.max(1, chapter.cities.length - 1);
       const x = chapter.cities.length === 1 ? 50 : 12 + (index / count) * 76;
@@ -3703,6 +3760,32 @@
       const width = Math.sqrt(dx * dx + dy * dy);
       const angle = Math.atan2(dy, dx) * 180 / Math.PI;
       return `--x:${from.x}%; --y:${from.y}%; --w:${width}%; --angle:${angle}deg`;
+    }
+
+    function chapterMapSlug(chapter) {
+      if (chapter?.name === "德国起点") return "germany";
+      return "default";
+    }
+
+    function chapterMapArtwork(chapter) {
+      if (chapter?.name !== "德国起点") return "";
+      return `
+        <svg class="chapter-art" viewBox="0 0 420 250" aria-hidden="true">
+          <path class="land" d="M86 30 C130 15 195 18 246 32 C302 48 338 83 350 128 C365 183 325 217 260 226 C194 236 126 220 82 188 C36 154 34 92 86 30Z"/>
+          <path class="state" d="M78 74 C114 48 166 44 210 59 C236 68 251 92 244 124 C236 164 192 190 143 184 C91 177 55 139 66 101 C69 90 72 81 78 74Z"/>
+          <path class="state" d="M219 86 C264 75 316 92 339 129 C361 164 342 202 296 216 C246 232 199 207 191 165 C184 126 193 95 219 86Z"/>
+          <path class="river" d="M30 42 C65 62 84 84 94 111 C110 150 146 170 189 169"/>
+          <path class="river" d="M78 118 C111 116 140 105 166 86 C187 72 207 67 232 72"/>
+          <path class="mountain" d="M238 207 L256 174 L276 210 Z"/>
+          <path class="mountain" d="M272 214 L292 178 L318 219 Z"/>
+          <path class="mountain" d="M306 212 L326 184 L351 218 Z"/>
+          <text x="46" y="47">Rhein</text>
+          <text x="91" y="112">Neckar</text>
+          <text x="252" y="236">Alpen</text>
+          <text x="64" y="214">Baden-Wurttemberg</text>
+          <text x="287" y="88">Bayern</text>
+        </svg>
+      `;
     }
 
     function renderJourneyPanel() {
@@ -3812,8 +3895,9 @@
       const visualMode = mapMode === "world" ? "chapter" : mapMode;
       const map = document.querySelector("#worldMap");
       const wasZooming = map.classList.contains("map-zooming");
-      map.className = `world-map map-${visualMode}${wasZooming ? " map-zooming" : ""}`;
-      map.innerHTML = mapArtwork(mapMode);
+      const chapterClass = visualMode === "chapter" ? ` map-chapter-${chapterMapSlug(chapter)}` : "";
+      map.className = `world-map map-${visualMode}${chapterClass}${wasZooming ? " map-zooming" : ""}`;
+      map.innerHTML = visualMode === "chapter" ? chapterMapArtwork(chapter) : mapArtwork(mapMode);
       const trail = document.createElement("div");
       trail.className = `map-trail${mapMode === "world" ? "" : " in-region"}`;
       const layerText = layerTextFor(visualMode);
