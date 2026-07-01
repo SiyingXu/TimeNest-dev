@@ -545,6 +545,38 @@
       margin-bottom: 14px;
     }
 
+    .reward-sections {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .reward-section-tab {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,.74);
+      color: #5f6b7a;
+      min-height: 42px;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .reward-section-tab.active {
+      border-color: rgba(227,107,127,.45);
+      background: #fff1f4;
+      color: #8e3047;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.62);
+    }
+
+    .reward-panel {
+      display: none;
+    }
+
+    .reward-panel.active {
+      display: block;
+    }
+
     .map-header {
       display: flex;
       justify-content: space-between;
@@ -1484,6 +1516,12 @@
       background: #f1fff9;
     }
 
+    .city-task.travel-ticket-task {
+      border-color: rgba(214,143,45,.34);
+      background:
+        linear-gradient(90deg, rgba(255,247,232,.92), rgba(255,255,255,.86));
+    }
+
     .city-task.locked {
       opacity: .68;
       filter: grayscale(.35);
@@ -1523,6 +1561,11 @@
       padding: 7px 9px;
       font-size: 12px;
       white-space: nowrap;
+    }
+
+    .city-task button:disabled {
+      cursor: not-allowed;
+      opacity: .65;
     }
 
     .travel-stat {
@@ -2345,16 +2388,27 @@
       </section>
 
       <section class="view" id="rewards-view">
-        <div class="travel-map" aria-label="世界旅行地图">
-          <div class="map-header">
-            <div>
-              <h2>世界旅行地图</h2>
-              <p>点击想去的城市，查看卡牌、兑换票据，让小猪护照慢慢盖满章。</p>
+        <div class="reward-sections" id="rewardSections" aria-label="旅行奖励分区">
+          <button class="reward-section-tab active" data-reward-section="city" type="button">当前城市</button>
+          <button class="reward-section-tab" data-reward-section="route" type="button">环球路线</button>
+          <button class="reward-section-tab" data-reward-section="collection" type="button">卡册商店</button>
+        </div>
+
+        <div class="reward-panel active" data-reward-panel="city">
+          <div class="travel-map" aria-label="当前城市地图">
+            <div class="map-header">
+              <div>
+                <h2>当前城市</h2>
+                <p>先完成本城 3 个游览章，再购买交通票前往下一站。</p>
+              </div>
+              <div class="map-chip" id="travelBudget">0 金币</div>
             </div>
-            <div class="map-chip" id="travelBudget">0 金币</div>
+            <div class="world-map" id="worldMap" aria-label="可点击旅行地图"></div>
+            <div class="selected-card" id="selectedCard"></div>
           </div>
-          <div class="world-map" id="worldMap" aria-label="可点击世界地图"></div>
-          <div class="selected-card" id="selectedCard"></div>
+        </div>
+
+        <div class="reward-panel" data-reward-panel="route">
           <div class="journey-panel" id="journeyPanel"></div>
           <div class="travel-stats">
             <button class="travel-stat" id="cityShelfButton" type="button" title="打开城市卡书架"><strong id="cityCount">0</strong><span>城市卡</span></button>
@@ -2363,7 +2417,7 @@
           </div>
         </div>
 
-        <div class="panel">
+        <div class="panel reward-panel" data-reward-panel="collection">
           <h2>旅行奖励</h2>
           <div class="shop-tabs" id="shopTabs"></div>
           <div class="shop-grid" id="shop"></div>
@@ -2460,6 +2514,7 @@
       owned: [],
       ownedRewards: ["tuebingen-card"],
       pet: { food: 70, mood: 72, energy: 68 },
+      travel: { currentCityId: "tuebingen", arrivedCities: ["tuebingen"], tickets: [] },
       funds: {},
       wishlist: [],
       records: [],
@@ -2665,6 +2720,7 @@
 
     let activeCategory = "city";
     let activeStampCategory = "city";
+    let activeRewardSection = "city";
     let selectedRewardId = "tuebingen-card";
     let mapMode = "world";
     let timerMode = "countdown";
@@ -2698,6 +2754,12 @@
       parsed.pet.food ??= 70;
       parsed.pet.mood ??= 72;
       parsed.pet.energy ??= 68;
+      parsed.travel ??= { currentCityId: "tuebingen", arrivedCities: ["tuebingen"], tickets: [] };
+      parsed.travel.currentCityId ??= "tuebingen";
+      parsed.travel.arrivedCities = Array.isArray(parsed.travel.arrivedCities) ? parsed.travel.arrivedCities : ["tuebingen"];
+      if (!parsed.travel.arrivedCities.includes("tuebingen")) parsed.travel.arrivedCities.unshift("tuebingen");
+      if (!parsed.travel.arrivedCities.includes(parsed.travel.currentCityId)) parsed.travel.arrivedCities.push(parsed.travel.currentCityId);
+      parsed.travel.tickets = Array.isArray(parsed.travel.tickets) ? parsed.travel.tickets : [];
       parsed.funds ??= {};
       parsed.wishlist ??= [];
       parsed.records ??= [];
@@ -2751,6 +2813,7 @@
     }
 
     function render() {
+      ensureTravelState();
       document.querySelector("#coins").textContent = state.coins;
       document.querySelector("#todayDone").textContent = state.todayDone;
       document.querySelector("#focusMinutes").textContent = state.focusMinutes;
@@ -2758,9 +2821,24 @@
       renderTasks("#allTasks", state.tasks);
       renderPlans();
       renderWeeklyReport();
+      renderRewardSections();
       renderShop();
       renderTravelMap();
       renderPet();
+    }
+
+    function renderRewardSections() {
+      document.querySelectorAll("[data-reward-section]").forEach(button => {
+        button.classList.toggle("active", button.dataset.rewardSection === activeRewardSection);
+        button.onclick = () => {
+          activeRewardSection = button.dataset.rewardSection;
+          if (activeRewardSection === "city") mapMode = "world";
+          render();
+        };
+      });
+      document.querySelectorAll("[data-reward-panel]").forEach(panel => {
+        panel.classList.toggle("active", panel.dataset.rewardPanel === activeRewardSection);
+      });
     }
 
     function renderTasks(selector, tasks) {
@@ -3033,21 +3111,79 @@
       return cityProgress(cityId) >= 3;
     }
 
+    function ensureTravelState() {
+      state.travel ??= { currentCityId: "tuebingen", arrivedCities: ["tuebingen"], tickets: [] };
+      state.travel.currentCityId ??= "tuebingen";
+      state.travel.arrivedCities = Array.isArray(state.travel.arrivedCities) ? state.travel.arrivedCities : ["tuebingen"];
+      state.travel.tickets = Array.isArray(state.travel.tickets) ? state.travel.tickets : [];
+      if (!state.travel.arrivedCities.includes("tuebingen")) state.travel.arrivedCities.unshift("tuebingen");
+      if (!state.travel.arrivedCities.includes(state.travel.currentCityId)) state.travel.arrivedCities.push(state.travel.currentCityId);
+      const currentCard = cityCardId(state.travel.currentCityId);
+      if (!state.ownedRewards.includes(currentCard)) state.ownedRewards.push(currentCard);
+    }
+
     function currentJourneyIndex() {
-      const index = journeyCities.findIndex(city => !isCityCompleted(city.id));
+      ensureTravelState();
+      const index = journeyCities.findIndex(city => city.id === state.travel.currentCityId);
       return index === -1 ? journeyCities.length - 1 : index;
     }
 
+    function nextJourneyCity() {
+      return journeyCities[currentJourneyIndex() + 1] || null;
+    }
+
+    function travelTicketId(fromCityId, toCityId) {
+      return `ticket-${fromCityId}-to-${toCityId}`;
+    }
+
+    function travelTicketType(fromCity, toCity) {
+      const span = Math.abs(toCity.x - fromCity.x) + Math.abs(toCity.y - fromCity.y);
+      if (fromCity.country === toCity.country) return "城际火车票";
+      if (fromCity.chapter === toCity.chapter) return "跨境火车票";
+      return span > 26 ? "长途机票" : "跨区交通票";
+    }
+
+    function travelTicketPrice(fromCity, toCity) {
+      const span = Math.abs(toCity.x - fromCity.x) + Math.abs(toCity.y - fromCity.y);
+      if (fromCity.country === toCity.country) return 90;
+      if (fromCity.chapter === toCity.chapter) return 160;
+      if (span > 32) return 760;
+      if (span > 22) return 480;
+      return 260;
+    }
+
+    function currentTravelTicket() {
+      const from = journeyCities[currentJourneyIndex()];
+      const to = nextJourneyCity();
+      if (!from || !to) return null;
+      return {
+        id: travelTicketId(from.id, to.id),
+        from,
+        to,
+        type: travelTicketType(from, to),
+        price: travelTicketPrice(from, to)
+      };
+    }
+
     function isUnlocked(item) {
-      if (item.routePreviousCity && !isCityCompleted(item.routePreviousCity)) return false;
+      ensureTravelState();
+      if (item.routeCityId && item.category === "city") {
+        return state.travel.arrivedCities.includes(item.routeCityId) || item.routeCityId === state.travel.currentCityId;
+      }
+      if (item.cityId && item.category !== "city" && item.cityId !== state.travel.currentCityId) return false;
       if (item.cityId && item.category !== "city" && !state.ownedRewards.includes(cityCardId(item.cityId))) return false;
       return !item.requires || state.ownedRewards.includes(item.requires);
     }
 
     function unlockHint(item) {
-      if (item.routePreviousCity && !isCityCompleted(item.routePreviousCity)) {
-        const previous = journeyCityById(item.routePreviousCity);
-        return previous ? `先在「${previous.name}」完成 3 个游览章` : "先完成上一站";
+      ensureTravelState();
+      if (item.routeCityId && item.category === "city" && !state.travel.arrivedCities.includes(item.routeCityId)) {
+        const current = journeyCities[currentJourneyIndex()];
+        return current ? `先从「${current.name}」买票出发` : "先抵达这座城市";
+      }
+      if (item.cityId && item.category !== "city" && item.cityId !== state.travel.currentCityId) {
+        const city = journeyCityById(item.cityId);
+        return city ? `抵达「${city.name}」后开放` : "抵达对应城市后开放";
       }
       if (item.cityId && item.category !== "city" && !state.ownedRewards.includes(cityCardId(item.cityId))) {
         const city = journeyCityById(item.cityId);
@@ -3126,25 +3262,27 @@
       const currentIndex = currentJourneyIndex();
       const current = journeyCities[currentIndex];
       const next = journeyCities[currentIndex + 1];
-      const progress = Math.round(journeyCities.filter(city => isCityCompleted(city.id)).length / journeyCities.length * 100);
+      const arrivedCount = state.travel.arrivedCities.length;
+      const progress = Math.round(arrivedCount / journeyCities.length * 100);
       const currentProgress = cityProgress(current.id);
       const chapters = journeyChapters();
       const nearby = journeyCities.slice(Math.max(0, currentIndex - 3), Math.min(journeyCities.length, currentIndex + 5));
       const activeChapter = chapters.find(chapter => chapter.cities.includes(current));
+      const ticket = currentTravelTicket();
       root.innerHTML = `
         <div class="journey-head">
           <div>
             <strong>环球主线：${current.name}</strong>
-            <span>${current.country} · ${current.chapter} · 本城 ${currentProgress}/3 章</span>
+            <span>${current.country} · ${current.chapter} · 已抵达 ${arrivedCount}/${journeyCities.length} 城</span>
           </div>
           <div class="map-chip">${progress}%</div>
         </div>
         <div class="journey-progress" aria-label="环球路线进度"><div style="--progress:${progress}%"></div></div>
-        <div class="journey-copy">${next ? `完成 ${current.name} 的 3 个游览章后，下一站开放：${next.name}。` : "环球主线已经回到图宾根，可以准备毕业纪念章。"}</div>
+        <div class="journey-copy">${next ? (currentProgress >= 3 ? `本城 3 章已完成，可以购买${ticket.type}前往 ${next.name}。` : `完成 ${current.name} 的 3 个游览章后，会开放前往 ${next.name} 的交通票。`) : "环球主线已经回到图宾根，可以准备毕业纪念章。"}</div>
         <div class="journey-copy">当前章节：${activeChapter?.name || current.chapter} · ${activeChapter?.done || 0}/${activeChapter?.cities.length || 1} 城完成</div>
         <div class="journey-city-strip">
           ${nearby.map(city => `
-            <button class="journey-city${isCityCompleted(city.id) ? " done" : ""}${city.id === current.id ? " current" : ""}" data-city-id="${city.id}" type="button">
+            <button class="journey-city${state.travel.arrivedCities.includes(city.id) ? " done" : ""}${city.id === current.id ? " current" : ""}" data-city-id="${city.id}" type="button">
               ${city.name} ${cityProgress(city.id)}/3
             </button>
           `).join("")}
@@ -3162,7 +3300,7 @@
     function renderTravelMap() {
       document.querySelector("#travelBudget").textContent = `${state.coins} 金币`;
       document.querySelector("#cityCount").textContent = ownedRewardsBy("city").length;
-      document.querySelector("#ticketCount").textContent = ownedRewardsBy("ticket").length;
+      document.querySelector("#ticketCount").textContent = ownedRewardsBy("ticket").length + state.travel.tickets.length;
       document.querySelector("#wishCount").textContent = ownedRewardsBy("wish").length;
       renderJourneyPanel();
 
@@ -3191,15 +3329,15 @@
           const pin = document.createElement("button");
           pin.className = [
             "map-pin",
-            isCityCompleted(city.id) ? "owned" : "",
-            city.id === previousCity?.id ? "completed-city" : "",
+            state.travel.arrivedCities.includes(city.id) ? "owned" : "",
+            state.travel.arrivedCities.includes(city.id) && city.id !== currentCity.id ? "completed-city" : "",
             city.id === currentCity.id ? "active" : "",
             city.id === nextCity?.id ? "next-stop" : "",
             !isUnlocked(item) ? "locked" : ""
           ].filter(Boolean).join(" ");
           pin.style.setProperty("--x", `${city.x}%`);
           pin.style.setProperty("--y", `${city.y}%`);
-          pin.textContent = city.id === previousCity?.id ? `已完成：${city.name}` : city.id === currentCity.id ? `当前：${city.name}` : `下一站：${city.name}`;
+          pin.textContent = state.travel.arrivedCities.includes(city.id) && city.id !== currentCity.id ? `已抵达：${city.name}` : city.id === currentCity.id ? `当前：${city.name}` : `下一站：${city.name}`;
           pin.title = isUnlocked(item) ? `${city.chapter} · ${cityProgress(city.id)}/3` : unlockHint(item);
           pin.addEventListener("click", () => selectReward(item.id));
           map.appendChild(pin);
@@ -3225,8 +3363,8 @@
         const caption = document.createElement("div");
         caption.className = "map-caption";
         caption.textContent = visualMode === "world"
-          ? (nextCity ? `完成 3 章后前往 ${nextCity.name}` : "环球路线收官")
-          : `${currentCity.name}城市地图 · 完成 3 章点亮城市`;
+          ? (nextCity ? `盖满 3 章并买票前往 ${nextCity.name}` : "环球路线收官")
+          : `${currentCity.name}城市地图 · 买票抵达后点亮城市`;
         map.appendChild(caption);
         renderCurrentCityCard();
         return;
@@ -3279,7 +3417,7 @@
         : "小猪正在等第一张票";
       document.querySelector("#pigTravelTitle").textContent = `小猪正在 ${current.name}`;
       document.querySelector("#pigTravelNote").textContent = next
-        ? `本城已盖 ${currentProgress}/3 章。盖满 3 章后，下一站开放：${next.name}。`
+        ? `本城已盖 ${currentProgress}/3 章。盖满后购买交通票，和小猪一起前往 ${next.name}。`
         : "环球路线已经回到图宾根，小猪正在整理毕业纪念章。";
       document.querySelector("#pigLastStamp").textContent = latest ? `最近：${latest.stamp}` : "最近：空白";
       document.querySelector("#pigNextStop").textContent = next ? `下一站：${next.name}` : "下一站：回家";
@@ -3394,12 +3532,14 @@
       const { city, cityCard, visits } = currentCityItems();
       const next = journeyCities[currentJourneyIndex() + 1];
       const progress = cityProgress(city.id);
+      const ticket = currentTravelTicket();
+      const ticketReady = ticket && progress >= 3;
       root.className = "current-city-card";
       root.innerHTML = `
         <div class="journey-head">
           <div>
             <h3>${city.name} · 当前城市</h3>
-            <p>${city.country} · ${city.chapter} · 完成任意 3 个游览章后解锁下一站${next ? `：${next.name}` : ""}</p>
+            <p>${city.country} · ${city.chapter} · ${next ? `本城盖满 3 章后购买交通票前往 ${next.name}` : "环球路线最后一站"}</p>
           </div>
           <div class="map-chip">${progress}/3</div>
         </div>
@@ -3429,6 +3569,16 @@
               </div>
             `;
           }).join("")}
+          ${ticket ? `
+            <div class="city-task travel-ticket-task${ticketReady ? "" : " locked"}" data-travel-ticket="${ticket.id}">
+              <div class="city-task-icon">${ticket.type.includes("机票") ? "AIR" : "RAIL"}</div>
+              <div class="city-task-copy">
+                <strong>${city.name} → ${ticket.to.name}</strong>
+                <span>${ticketReady ? `${ticket.type} · ${ticket.price} 金币。购买后小猪护照会盖下出发章。` : `还差 ${3 - progress} 个游览章开放交通票。`}</span>
+              </div>
+              <button class="${ticketReady ? "primary" : "secondary"}" data-action="travel" ${ticketReady ? "" : "disabled"}>${ticketReady ? `${ticket.price} 金币出发` : "未开放"}</button>
+            </div>
+          ` : ""}
         </div>
       `;
       root.querySelectorAll("[data-task-reward]").forEach(row => {
@@ -3439,6 +3589,41 @@
           else showRewardDetail(item);
         });
       });
+      root.querySelector("[data-travel-ticket]")?.addEventListener("click", event => {
+        if (!event.target.closest("button")) return;
+        buyTravelTicket();
+      });
+    }
+
+    function buyTravelTicket() {
+      const ticket = currentTravelTicket();
+      if (!ticket) {
+        showToast("环球路线已经完成啦。");
+        return;
+      }
+      const progress = cityProgress(ticket.from.id);
+      if (progress < 3) {
+        showToast(`先完成「${ticket.from.name}」的 3 个游览章。`);
+        return;
+      }
+      if (state.coins < ticket.price) {
+        showToast("金币还不够，先去完成任务或专注计时。");
+        return;
+      }
+      if (!window.confirm(`确认花费 ${ticket.price} 金币购买${ticket.type}，从「${ticket.from.name}」前往「${ticket.to.name}」吗？`)) return;
+      spendCoins(ticket.price, `购买「${ticket.from.name}→${ticket.to.name}」${ticket.type}`);
+      if (!state.travel.tickets.includes(ticket.id)) state.travel.tickets.push(ticket.id);
+      if (!state.ownedRewards.includes(ticket.id)) state.ownedRewards.push(ticket.id);
+      state.travel.currentCityId = ticket.to.id;
+      if (!state.travel.arrivedCities.includes(ticket.to.id)) state.travel.arrivedCities.push(ticket.to.id);
+      const nextCardId = cityCardId(ticket.to.id);
+      if (!state.ownedRewards.includes(nextCardId)) state.ownedRewards.push(nextCardId);
+      selectedRewardId = nextCardId;
+      mapMode = "world";
+      activeRewardSection = "city";
+      saveState();
+      render();
+      showToast(`已抵达 ${ticket.to.name}，新的城市章开放了。`);
     }
 
     function zoomMap(mode) {
@@ -3918,7 +4103,7 @@
       if (item.cityId && isCityCompleted(item.cityId)) {
         const city = journeyCityById(item.cityId);
         const next = city ? journeyCities[journeyCities.findIndex(routeCity => routeCity.id === city.id) + 1] : null;
-        showToast(next ? `${city.name} 3 章完成，下一站开放：${next.name}` : `${city.name} 3 章完成，环球路线收官！`);
+        showToast(next ? `${city.name} 3 章完成，前往 ${next.name} 的交通票开放了。` : `${city.name} 3 章完成，环球路线收官！`);
       } else {
         showToast(`小猪盖下 ${item.stamp || item.icon} 章：${item.name}`);
       }
