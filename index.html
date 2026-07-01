@@ -706,6 +706,35 @@
       z-index: 1;
     }
 
+    .chapter-segment {
+      position: absolute;
+      left: var(--x);
+      top: var(--y);
+      z-index: 2;
+      width: var(--w);
+      height: 4px;
+      border-radius: 999px;
+      background: #cbd5e1;
+      transform: rotate(var(--angle));
+      transform-origin: left center;
+      opacity: .86;
+    }
+
+    .chapter-segment.done {
+      background: linear-gradient(90deg, #3da989, #9bd8c1);
+      box-shadow: 0 0 0 3px rgba(61,169,137,.12);
+    }
+
+    .chapter-segment.next {
+      background: repeating-linear-gradient(90deg, #e36b7f 0 10px, transparent 10px 17px);
+      box-shadow: 0 0 0 3px rgba(227,107,127,.1);
+    }
+
+    .chapter-segment.locked {
+      background: repeating-linear-gradient(90deg, rgba(148,163,184,.8) 0 8px, transparent 8px 15px);
+      opacity: .55;
+    }
+
     .chapter-badge {
       position: absolute;
       left: 12px;
@@ -732,6 +761,94 @@
       line-height: 1.35;
     }
 
+    .map-chapter .map-pin {
+      min-width: 54px;
+      min-height: 54px;
+      border-radius: 16px;
+      padding: 7px;
+      display: grid;
+      place-items: center;
+      gap: 2px;
+      text-align: center;
+      border: 2px solid rgba(255,255,255,.94);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,255,255,.8)),
+        #fff;
+      box-shadow: 0 12px 24px rgba(31,41,55,.14);
+      font-size: 11px;
+      line-height: 1.05;
+    }
+
+    .map-chapter .map-pin::before {
+      display: none;
+    }
+
+    .map-chapter .map-pin .node-mark {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: #edf1f5;
+      color: #64748b;
+      font-size: 10px;
+      font-weight: 950;
+    }
+
+    .map-chapter .map-pin .node-name {
+      max-width: 68px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .map-chapter .map-pin.owned .node-mark,
+    .map-chapter .map-pin.completed-city .node-mark {
+      background: #3da989;
+      color: #fff;
+    }
+
+    .map-chapter .map-pin.active {
+      border-color: rgba(77,124,199,.8);
+      background:
+        radial-gradient(circle at 50% 0, rgba(77,124,199,.18), transparent 54%),
+        #fff;
+      box-shadow: 0 0 0 5px rgba(77,124,199,.14), 0 15px 28px rgba(31,41,55,.18);
+      animation: nodePulse 1.8s ease-in-out infinite;
+    }
+
+    .map-chapter .map-pin.active .node-mark {
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .map-chapter .map-pin.next-stop {
+      border-color: rgba(227,107,127,.7);
+      background:
+        radial-gradient(circle at 50% 0, rgba(227,107,127,.18), transparent 54%),
+        #fff8f5;
+    }
+
+    .map-chapter .map-pin.next-stop .node-mark {
+      background: #e36b7f;
+      color: #fff;
+    }
+
+    .map-chapter .map-pin.locked {
+      background: rgba(255,255,255,.66);
+      border-color: rgba(148,163,184,.58);
+      box-shadow: none;
+    }
+
+    .map-chapter .map-pin.locked::after {
+      display: none;
+    }
+
+    .map-chapter .map-pin.locked .node-mark {
+      background: #e2e8f0;
+      color: #94a3b8;
+    }
+
     .world-map.map-zooming {
       animation: mapZoom 260ms ease both;
     }
@@ -739,6 +856,11 @@
     @keyframes mapZoom {
       from { opacity: .72; transform: scale(.985); }
       to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes nodePulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -53%) scale(1.03); }
     }
 
     .world-map::before {
@@ -3464,6 +3586,14 @@
       return { x, y };
     }
 
+    function chapterSegmentStyle(from, to) {
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const width = Math.sqrt(dx * dx + dy * dy);
+      const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+      return `--x:${from.x}%; --y:${from.y}%; --w:${width}%; --angle:${angle}deg`;
+    }
+
     function renderJourneyPanel() {
       const root = document.querySelector("#journeyPanel");
       const currentIndex = currentJourneyIndex();
@@ -3575,13 +3705,26 @@
       map.appendChild(trail);
       if (mapMode === "world") {
         if (chapter) {
-          const path = document.createElement("div");
-          path.className = "chapter-path";
-          map.appendChild(path);
           const badge = document.createElement("div");
           badge.className = "chapter-badge";
           badge.innerHTML = `<strong>${chapter.index + 1}. ${chapter.name}</strong><span>${chapter.done}/${chapter.cities.length} 城已抵达 · ${chapter.completed ? "章节完成" : "当前章节进行中"}</span>`;
           map.appendChild(badge);
+          chapter.cities.slice(0, -1).forEach((city, index) => {
+            const next = chapter.cities[index + 1];
+            const from = chapterCityPosition(chapter, city);
+            const to = chapterCityPosition(chapter, next);
+            const segment = document.createElement("div");
+            const done = state.travel.arrivedCities.includes(city.id) && state.travel.arrivedCities.includes(next.id);
+            const upcoming = city.id === currentCity.id && next.id === nextCity?.id;
+            segment.className = [
+              "chapter-segment",
+              done ? "done" : "",
+              upcoming ? "next" : "",
+              !done && !upcoming ? "locked" : ""
+            ].filter(Boolean).join(" ");
+            segment.setAttribute("style", chapterSegmentStyle(from, to));
+            map.appendChild(segment);
+          });
         }
         const routePins = chapter ? chapter.cities : [previousCity, currentCity, nextCity];
         routePins
@@ -3602,7 +3745,8 @@
           ].filter(Boolean).join(" ");
           pin.style.setProperty("--x", `${position.x}%`);
           pin.style.setProperty("--y", `${position.y}%`);
-          pin.textContent = state.travel.arrivedCities.includes(city.id) && city.id !== currentCity.id ? `已抵达：${city.name}` : city.id === currentCity.id ? `当前：${city.name}` : `下一站：${city.name}`;
+          const nodeMark = state.travel.arrivedCities.includes(city.id) && city.id !== currentCity.id ? "✓" : city.id === currentCity.id ? "●" : city.id === nextCity?.id ? "→" : "□";
+          pin.innerHTML = `<span class="node-mark">${nodeMark}</span><span class="node-name">${city.name}</span>`;
           pin.title = isUnlocked(item) ? `${city.chapter} · ${cityProgress(city.id)}/3` : unlockHint(item);
           pin.addEventListener("click", () => selectReward(item.id));
           map.appendChild(pin);
