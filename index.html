@@ -681,6 +681,57 @@
         linear-gradient(180deg, #d9edf0 0%, #fff7e8 100%);
     }
 
+    .world-map.map-chapter {
+      min-height: 246px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.22)),
+        radial-gradient(circle at 18% 22%, rgba(255,255,255,.86), transparent 16%),
+        radial-gradient(circle at 78% 18%, rgba(255,246,219,.72), transparent 18%),
+        repeating-linear-gradient(90deg, rgba(120,92,66,.08) 0 1px, transparent 1px 32px),
+        repeating-linear-gradient(0deg, rgba(120,92,66,.06) 0 1px, transparent 1px 30px),
+        linear-gradient(135deg, #f7ead8 0%, #e8f3ee 48%, #edf4fb 100%);
+      border-color: rgba(160,130,93,.38);
+    }
+
+    .chapter-path {
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      top: 50%;
+      height: 3px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(227,107,127,.55), rgba(42,121,103,.52));
+      transform: rotate(-2deg);
+      opacity: .72;
+      z-index: 1;
+    }
+
+    .chapter-badge {
+      position: absolute;
+      left: 12px;
+      bottom: 12px;
+      z-index: 4;
+      max-width: 178px;
+      border: 1px solid rgba(31,41,55,.1);
+      border-radius: 8px;
+      background: rgba(255,255,255,.78);
+      padding: 8px 10px;
+      box-shadow: 0 10px 24px rgba(42,50,63,.1);
+    }
+
+    .chapter-badge strong {
+      display: block;
+      font-size: 13px;
+    }
+
+    .chapter-badge span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
     .world-map.map-zooming {
       animation: mapZoom 260ms ease both;
     }
@@ -1429,6 +1480,16 @@
       background: #fff1f4;
     }
 
+    .journey-chapter.done {
+      border-color: rgba(42,121,103,.38);
+      background: #f1fff9;
+    }
+
+    .journey-chapter.locked {
+      opacity: .56;
+      filter: grayscale(.42);
+    }
+
     .journey-chapter strong {
       font-size: 12px;
       line-height: 1.2;
@@ -1520,6 +1581,13 @@
       border-color: rgba(214,143,45,.34);
       background:
         linear-gradient(90deg, rgba(255,247,232,.92), rgba(255,255,255,.86));
+    }
+
+    .city-task.chapter-prize-task {
+      border-color: rgba(227,107,127,.28);
+      background:
+        radial-gradient(circle at 8% 16%, rgba(240,197,93,.2), transparent 24%),
+        linear-gradient(90deg, rgba(255,241,244,.9), rgba(255,255,255,.86));
     }
 
     .city-task.locked {
@@ -3228,6 +3296,7 @@
       if (mode === "germany") return ["世界", "德国", "图宾根入口"];
       if (mode === "shanghai-city") return ["世界", "中国", "上海", "城市探索"];
       if (mode === "tuebingen-city") return ["世界", "德国", "图宾根", "城市探索"];
+      if (mode === "chapter") return ["环球章节", journeyCities[currentJourneyIndex()]?.chapter || "当前章节"];
       return ["世界地图", "选择国家"];
     }
 
@@ -3250,11 +3319,39 @@
     }
 
     function journeyChapters() {
-      return [...new Set(journeyCities.map(city => city.chapter))].map(name => {
+      return [...new Set(journeyCities.map(city => city.chapter))].map((name, index) => {
         const cities = journeyCities.filter(city => city.chapter === name);
-        const done = cities.filter(city => isCityCompleted(city.id)).length;
-        return { name, cities, done };
+        const done = cities.filter(city => state.travel.arrivedCities.includes(city.id)).length;
+        const currentIndex = currentJourneyIndex();
+        const currentCity = journeyCities[currentIndex];
+        const firstRouteIndex = journeyCities.findIndex(city => city.id === cities[0].id);
+        const lastRouteIndex = journeyCities.findIndex(city => city.id === cities[cities.length - 1].id);
+        return {
+          name,
+          index,
+          cities,
+          done,
+          firstRouteIndex,
+          lastRouteIndex,
+          active: cities.some(city => city.id === currentCity.id),
+          unlocked: firstRouteIndex <= currentIndex || state.travel.arrivedCities.includes(cities[0].id),
+          completed: done === cities.length
+        };
       });
+    }
+
+    function currentChapter() {
+      const current = journeyCities[currentJourneyIndex()];
+      return journeyChapters().find(chapter => chapter.cities.some(city => city.id === current.id));
+    }
+
+    function chapterCityPosition(chapter, city) {
+      const index = chapter.cities.findIndex(item => item.id === city.id);
+      const count = Math.max(1, chapter.cities.length - 1);
+      const x = chapter.cities.length === 1 ? 50 : 12 + (index / count) * 76;
+      const wave = index % 4;
+      const y = [54, 38, 58, 44][wave] || 50;
+      return { x, y };
     }
 
     function renderJourneyPanel() {
@@ -3280,6 +3377,14 @@
         <div class="journey-progress" aria-label="环球路线进度"><div style="--progress:${progress}%"></div></div>
         <div class="journey-copy">${next ? (currentProgress >= 3 ? `本城 3 章已完成，可以购买${ticket.type}前往 ${next.name}。` : `完成 ${current.name} 的 3 个游览章后，会开放前往 ${next.name} 的交通票。`) : "环球主线已经回到图宾根，可以准备毕业纪念章。"}</div>
         <div class="journey-copy">当前章节：${activeChapter?.name || current.chapter} · ${activeChapter?.done || 0}/${activeChapter?.cities.length || 1} 城完成</div>
+        <div class="journey-chapters" aria-label="环球旅行章节">
+          ${chapters.map(chapter => `
+            <button class="journey-chapter${chapter.active ? " active" : ""}${chapter.completed ? " done" : ""}${chapter.unlocked ? "" : " locked"}" data-chapter-index="${chapter.index}" type="button">
+              <strong>${chapter.index + 1}. ${chapter.name}</strong>
+              <span>${chapter.unlocked ? `${chapter.done}/${chapter.cities.length} 城 · ${chapter.completed ? "章节完成" : chapter.active ? "进行中" : "已开放"}` : "未解锁"}</span>
+            </button>
+          `).join("")}
+        </div>
         <div class="journey-city-strip">
           ${nearby.map(city => `
             <button class="journey-city${state.travel.arrivedCities.includes(city.id) ? " done" : ""}${city.id === current.id ? " current" : ""}" data-city-id="${city.id}" type="button">
@@ -3291,6 +3396,14 @@
       root.querySelectorAll("[data-city-id]").forEach(button => {
         button.addEventListener("click", () => {
           const city = journeyCityById(button.dataset.cityId);
+          const card = city && journeyCityCard(city.id);
+          if (card) selectReward(card.id);
+        });
+      });
+      root.querySelectorAll("[data-chapter-index]").forEach(button => {
+        button.addEventListener("click", () => {
+          const chapter = chapters[Number(button.dataset.chapterIndex)];
+          const city = chapter?.cities.find(item => item.id === current.id) || chapter?.cities[0];
           const card = city && journeyCityCard(city.id);
           if (card) selectReward(card.id);
         });
@@ -3308,24 +3421,35 @@
       const currentCity = journeyCities[currentIndex];
       const previousCity = journeyCities[currentIndex - 1];
       const nextCity = journeyCities[currentIndex + 1];
-      const visualMode = mapMode === "world" ? cityVisualMapMode(currentCity.id) : mapMode;
+      const chapter = currentChapter();
+      const visualMode = mapMode === "world" ? "chapter" : mapMode;
       const map = document.querySelector("#worldMap");
       const wasZooming = map.classList.contains("map-zooming");
       map.className = `world-map map-${visualMode}${wasZooming ? " map-zooming" : ""}`;
       map.innerHTML = mapArtwork(mapMode);
       const trail = document.createElement("div");
       trail.className = `map-trail${mapMode === "world" ? "" : " in-region"}`;
-      const layerText = layerTextFor(mapMode);
+      const layerText = layerTextFor(visualMode);
       trail.innerHTML = layerText.map((label, index) => `<span class="${index === layerText.length - 1 ? "active" : ""}">${label}</span>`).join("");
       map.appendChild(trail);
       if (mapMode === "world") {
-        const routePins = visualMode === "world" ? [previousCity, currentCity, nextCity] : [currentCity];
+        if (chapter) {
+          const path = document.createElement("div");
+          path.className = "chapter-path";
+          map.appendChild(path);
+          const badge = document.createElement("div");
+          badge.className = "chapter-badge";
+          badge.innerHTML = `<strong>${chapter.index + 1}. ${chapter.name}</strong><span>${chapter.done}/${chapter.cities.length} 城已抵达 · ${chapter.completed ? "章节完成" : "当前章节进行中"}</span>`;
+          map.appendChild(badge);
+        }
+        const routePins = chapter ? chapter.cities : [previousCity, currentCity, nextCity];
         routePins
           .filter(Boolean)
           .filter((city, index, cities) => cities.findIndex(item => item.id === city.id) === index)
           .forEach(city => {
           const item = journeyCityCard(city.id);
           if (!item) return;
+          const position = chapter ? chapterCityPosition(chapter, city) : { x: city.x, y: city.y };
           const pin = document.createElement("button");
           pin.className = [
             "map-pin",
@@ -3335,14 +3459,14 @@
             city.id === nextCity?.id ? "next-stop" : "",
             !isUnlocked(item) ? "locked" : ""
           ].filter(Boolean).join(" ");
-          pin.style.setProperty("--x", `${city.x}%`);
-          pin.style.setProperty("--y", `${city.y}%`);
+          pin.style.setProperty("--x", `${position.x}%`);
+          pin.style.setProperty("--y", `${position.y}%`);
           pin.textContent = state.travel.arrivedCities.includes(city.id) && city.id !== currentCity.id ? `已抵达：${city.name}` : city.id === currentCity.id ? `当前：${city.name}` : `下一站：${city.name}`;
           pin.title = isUnlocked(item) ? `${city.chapter} · ${cityProgress(city.id)}/3` : unlockHint(item);
           pin.addEventListener("click", () => selectReward(item.id));
           map.appendChild(pin);
         });
-        if (visualMode !== "world") {
+        if (visualMode !== "world" && visualMode !== "chapter") {
           currentCityItems().visits.forEach((item, index) => {
             const pin = document.createElement("button");
             const owned = isOwned(item);
@@ -3362,9 +3486,9 @@
         }
         const caption = document.createElement("div");
         caption.className = "map-caption";
-        caption.textContent = visualMode === "world"
-          ? (nextCity ? `盖满 3 章并买票前往 ${nextCity.name}` : "环球路线收官")
-          : `${currentCity.name}城市地图 · 买票抵达后点亮城市`;
+        caption.textContent = nextCity
+          ? `${chapter?.name || currentCity.chapter} · 盖满 3 章并买票前往 ${nextCity.name}`
+          : "环球路线收官";
         map.appendChild(caption);
         renderCurrentCityCard();
         return;
@@ -3534,6 +3658,7 @@
       const progress = cityProgress(city.id);
       const ticket = currentTravelTicket();
       const ticketReady = ticket && progress >= 3;
+      const chapter = currentChapter();
       root.className = "current-city-card";
       root.innerHTML = `
         <div class="journey-head">
@@ -3544,6 +3669,16 @@
           <div class="map-chip">${progress}/3</div>
         </div>
         <div class="journey-progress" aria-label="当前城市进度"><div style="--progress:${progress / 3 * 100}%"></div></div>
+        ${chapter ? `
+          <div class="city-task chapter-prize-task${chapter.completed ? " done" : " locked"}">
+            <div class="city-task-icon">${chapter.completed ? "★" : "LOCK"}</div>
+            <div class="city-task-copy">
+              <strong>${chapter.name} · 章节纪念徽章</strong>
+              <span>${chapter.completed ? "本章城市全部点亮，章节徽章已收入小猪护照。" : `抵达本章 ${chapter.cities.length} 座城市后点亮。当前 ${chapter.done}/${chapter.cities.length}。`}</span>
+            </div>
+            <button class="secondary" type="button" disabled>${chapter.completed ? "已点亮" : "章节奖励"}</button>
+          </div>
+        ` : ""}
         <div class="city-task-list">
           ${cityCard ? `
             <div class="city-task${isOwned(cityCard) ? " done" : ""}${isUnlocked(cityCard) ? "" : " locked"}" data-task-reward="${cityCard.id}">
