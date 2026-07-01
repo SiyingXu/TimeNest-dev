@@ -1,0 +1,4 @@
+.tunnel*.log
+.serveo*.log
+.preview-server*.log
+.agents/

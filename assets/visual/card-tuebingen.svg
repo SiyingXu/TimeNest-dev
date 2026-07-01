@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 996">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c9e9f7"/>
+      <stop offset=".35" stop-color="#fff8ee"/>
+      <stop offset="1" stop-color="#f4dfc4"/>
+    </linearGradient>
+    <filter id="rough">
+      <feTurbulence type="fractalNoise" baseFrequency=".028" numOctaves="3" seed="12"/>
+      <feColorMatrix type="saturate" values=".2"/>
+      <feBlend in="SourceGraphic" mode="multiply"/>
+    </filter>
+  </defs>
+  <rect width="720" height="996" rx="26" fill="#bd8b52"/>
+  <rect x="22" y="22" width="676" height="952" rx="16" fill="url(#paper)"/>
+  <g fill="#fff" opacity=".9">
+    <ellipse cx="118" cy="120" rx="82" ry="25"/><ellipse cx="386" cy="150" rx="108" ry="32"/>
+  </g>
+  <g transform="translate(92 245)" stroke="#743a2d" stroke-width="8" stroke-linejoin="round">
+    <path d="M66 382V158L260 14l210 152v216z" fill="#fff4df"/>
+    <path d="M260 14 508 200H20z" fill="#bd4938"/>
+    <path d="M88 184h352M92 246h350M93 310h346" stroke="#bd4938"/>
+    <path d="M150 164v216M234 114v266M324 132v248M404 178v202" stroke="#bd4938"/>
+    <g fill="#dfeeff" stroke="#29384b" stroke-width="5">
+      <rect x="134" y="206" width="48" height="58"/><rect x="254" y="188" width="54" height="66"/>
+      <rect x="372" y="218" width="48" height="58"/><rect x="206" y="300" width="54" height="66"/>
+      <rect x="326" y="302" width="54" height="66"/>
+    </g>
+  </g>
+  <g stroke="#2f3b4a" stroke-width="5" fill="none" opacity=".65">
+    <path d="M72 210c86-62 138-63 206-6M468 212c70-54 114-51 178 0"/>
+    <path d="M556 166 688 72"/>
+  </g>
+  <g fill="#526f54">
+    <circle cx="95" cy="724" r="44"/><circle cx="641" cy="704" r="62"/><circle cx="594" cy="750" r="38"/>
+  </g>
+  <g fill="#d99725">
+    <rect x="60" y="784" width="72" height="54" rx="18"/><circle cx="86" cy="838" r="17"/><circle cx="122" cy="838" r="17"/>
+  </g>
+  <text x="44" y="102" font-family="Georgia,serif" font-size="38" fill="#355568">The house in Mainz, Germany.</text>
+  <text x="44" y="188" font-family="Arial Black,Arial,sans-serif" font-size="80" fill="#bd4938">TUEBINGEN</text>
+  <text x="44" y="918" font-family="Arial Black,Arial,sans-serif" font-size="24" letter-spacing="3" fill="#743a2d">BASE CARD · TUE · OLD TOWN</text>
+  <rect width="720" height="996" rx="26" fill="#fff" opacity=".12" filter="url(#rough)"/>
+</svg>

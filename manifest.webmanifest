@@ -1,0 +1,47 @@
+{
+  "name": "TimeNest",
+  "short_name": "TimeNest",
+  "description": "Personal time planning, tasks, focus timers, weekly reports, and travel-card rewards.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fffdf8",
+  "theme_color": "#e36b7f",
+  "categories": ["productivity", "lifestyle"],
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "assets/app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "今日任务",
+      "short_name": "任务",
+      "url": "./index.html#tasks",
+      "description": "Open today's task list"
+    },
+    {
+      "name": "专注计时",
+      "short_name": "计时",
+      "url": "./index.html#timer",
+      "description": "Open the focus timer"
+    },
+    {
+      "name": "旅行奖励",
+      "short_name": "奖励",
+      "url": "./index.html#rewards",
+      "description": "Open travel rewards"
+    }
+  ]
+}

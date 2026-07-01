@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="TimeNest app icon">
+  <defs>
+    <linearGradient id="bg" x1="76" y1="56" x2="438" y2="462" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff4df"/>
+      <stop offset=".52" stop-color="#f7c7d2"/>
+      <stop offset="1" stop-color="#9bd9c8"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#1f2937" flood-opacity=".18"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <g filter="url(#shadow)">
+    <path d="M132 170c0-30 24-54 54-54h140c30 0 54 24 54 54v178c0 30-24 54-54 54H186c-30 0-54-24-54-54V170Z" fill="#fffdf8"/>
+    <path d="M168 170c0-12 10-22 22-22h132c12 0 22 10 22 22v46H168v-46Z" fill="#e36b7f"/>
+    <path d="M176 258h160M176 304h104" stroke="#1f2937" stroke-width="20" stroke-linecap="round"/>
+    <path d="M350 324c30 0 54 24 54 54s-24 54-54 54-54-24-54-54 24-54 54-54Z" fill="#f5a9b9" stroke="#b94d61" stroke-width="12"/>
+    <path d="M326 358h.01M374 358h.01" stroke="#1f2937" stroke-width="16" stroke-linecap="round"/>
+    <path d="M338 388c8 6 18 6 26 0" stroke="#1f2937" stroke-width="10" stroke-linecap="round"/>
+  </g>
+</svg>

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 508">
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b9e3f6"/>
+      <stop offset="1" stop-color="#e9f7fb"/>
+    </linearGradient>
+    <filter id="paper">
+      <feTurbulence type="fractalNoise" baseFrequency=".018" numOctaves="3" seed="7"/>
+      <feColorMatrix type="saturate" values=".18"/>
+      <feBlend in="SourceGraphic" mode="multiply"/>
+    </filter>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#37605a" flood-opacity=".20"/>
+    </filter>
+  </defs>
+  <rect width="840" height="508" rx="22" fill="url(#sea)"/>
+  <g opacity=".25" stroke="#5f9db7" stroke-width="1">
+    <path d="M0 132h840M0 254h840M0 376h840M140 0v508M280 0v508M420 0v508M560 0v508M700 0v508"/>
+  </g>
+  <g filter="url(#shadow)" stroke="#315b4b" stroke-width="4" stroke-linejoin="round">
+    <path fill="#6fa17b" d="M63 167 120 90l99 31 62 60-28 86-79 28-74-18-72 37-18-76z"/>
+    <path fill="#7cae83" d="M286 153 374 83l109 43 35 77-53 74-101-15-83 48-43-82z"/>
+    <path fill="#dfc169" d="M548 154 678 96l89 65-24 125-111 52-92-69z"/>
+    <path fill="#72a579" d="M604 353 708 377l35 68-95 36-82-45z"/>
+    <path fill="#86b989" d="M144 335 220 326l59 51-46 68-76-17-39-55z"/>
+  </g>
+  <g fill="none" stroke="#4d7cc7" stroke-width="5" stroke-linecap="round" stroke-dasharray="12 13" opacity=".62">
+    <path d="M403 207C466 144 560 143 667 205"/>
+    <path d="M377 218C309 214 230 230 156 278"/>
+  </g>
+  <g fill="#fff" opacity=".9">
+    <ellipse cx="126" cy="73" rx="58" ry="15"/>
+    <ellipse cx="424" cy="91" rx="78" ry="18"/>
+    <ellipse cx="714" cy="61" rx="50" ry="14"/>
+  </g>
+  <g filter="url(#paper)" opacity=".22">
+    <rect width="840" height="508" fill="#fff"/>
+  </g>
+  <text x="32" y="466" font-family="Georgia, serif" font-size="26" fill="#355568" opacity=".72">TimeNest World Travel Map</text>
+</svg>

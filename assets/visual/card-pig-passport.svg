@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 996">
+  <rect width="720" height="996" rx="26" fill="#c28b3d"/>
+  <rect x="22" y="22" width="676" height="952" rx="16" fill="#f8aac0"/>
+  <g opacity=".35" fill="#ffd36a">
+    <circle cx="130" cy="166" r="66"/><circle cx="548" cy="270" r="92"/><circle cx="248" cy="712" r="74"/>
+  </g>
+  <g transform="translate(190 270)">
+    <ellipse cx="170" cy="214" rx="146" ry="190" fill="#f6bfd0" stroke="#5f2d41" stroke-width="10"/>
+    <circle cx="128" cy="170" r="10" fill="#2f1f2b"/><circle cx="212" cy="170" r="10" fill="#2f1f2b"/>
+    <ellipse cx="170" cy="220" rx="48" ry="30" fill="#e9869e" stroke="#5f2d41" stroke-width="7"/>
+    <path d="M114 268c42 30 83 30 126 0" fill="none" stroke="#5f2d41" stroke-width="10" stroke-linecap="round"/>
+  </g>
+  <text x="50" y="130" font-family="Arial Black,Arial,sans-serif" font-size="72" fill="#3b2230">PIG PASSPORT</text>
+  <text x="56" y="880" font-family="Arial Black,Arial,sans-serif" font-size="25" letter-spacing="4" fill="#3b2230">TRAVEL COMPANION · STAMP BOOK</text>
+</svg>
