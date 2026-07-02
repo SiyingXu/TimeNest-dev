@@ -2584,18 +2584,53 @@
     .pet-stage {
       display: grid;
       gap: 12px;
+      min-height: 0;
     }
 
     .pet-room {
-      min-height: 150px;
+      min-height: 260px;
       position: relative;
       overflow: hidden;
       border: 1px solid #e4b9c4;
       border-radius: 8px;
       background:
-        linear-gradient(180deg, #fff8f5 0 60%, #e8c7a8 61%),
-        repeating-linear-gradient(90deg, rgba(150,94,65,.12) 0 12px, transparent 12px 24px);
-      box-shadow: var(--shadow);
+        radial-gradient(circle at 18% 18%, rgba(255,255,255,.9) 0 10%, transparent 11%),
+        linear-gradient(180deg, rgba(255,244,246,.86) 0 56%, transparent 57%),
+        linear-gradient(180deg, #fff9f4 0 58%, #e9caaa 59% 100%);
+      box-shadow: var(--shadow), inset 0 0 0 1px rgba(255,255,255,.7);
+    }
+
+    .pet-room::before {
+      content: "";
+      position: absolute;
+      left: 28px;
+      right: 28px;
+      bottom: 34px;
+      height: 70px;
+      border: 3px solid rgba(158, 101, 62, .36);
+      border-top: 12px solid rgba(158, 101, 62, .32);
+      border-radius: 18px 18px 12px 12px;
+      background:
+        repeating-linear-gradient(90deg, transparent 0 28px, rgba(158,101,62,.28) 29px 34px),
+        linear-gradient(180deg, rgba(255,255,255,.2), rgba(214,160,103,.18));
+      box-shadow: 0 12px 22px rgba(122,74,0,.08);
+    }
+
+    .pet-room::after {
+      content: "";
+      position: absolute;
+      right: 32px;
+      top: 34px;
+      width: 104px;
+      height: 70px;
+      border: 3px solid rgba(117, 153, 171, .34);
+      border-radius: 18px;
+      background:
+        linear-gradient(90deg, transparent 48%, rgba(117,153,171,.3) 49% 51%, transparent 52%),
+        linear-gradient(180deg, transparent 48%, rgba(117,153,171,.3) 49% 51%, transparent 52%),
+        radial-gradient(circle at 35% 30%, #fff 0 12%, transparent 13%),
+        linear-gradient(135deg, #dff2f5, #fff6dc);
+      box-shadow: 0 10px 20px rgba(31,41,55,.08);
     }
 
     .pet-travel-card {
@@ -2637,10 +2672,12 @@
 
     .pet-room .pig-face {
       left: 50%;
-      bottom: 38px;
-      width: 82px;
-      height: 66px;
+      bottom: 64px;
+      width: 112px;
+      height: 86px;
       transform: translateX(-50%);
+      z-index: 2;
+      box-shadow: 0 12px 0 rgba(185,77,97,.08);
     }
 
     .pet-room .pig-face::before,
@@ -2652,13 +2689,14 @@
 
     .pet-toy {
       position: absolute;
-      right: 46px;
-      bottom: 28px;
-      width: 38px;
-      height: 38px;
+      right: 48px;
+      bottom: 48px;
+      width: 46px;
+      height: 46px;
       border-radius: 50%;
       background: radial-gradient(circle at 32% 28%, #fff, #f0c55d 42%, #e36b7f 43%);
       border: 2px solid rgba(31,41,55,.12);
+      z-index: 2;
     }
 
     .pet-status-grid {
@@ -2731,11 +2769,17 @@
 
     .pig-label {
       position: absolute;
-      left: 8px;
-      top: 8px;
+      left: 12px;
+      top: 12px;
       color: #7a3342;
       font-size: 12px;
       font-weight: 800;
+      z-index: 3;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.78);
+      border: 1px solid rgba(228,185,196,.72);
+      box-shadow: 0 8px 18px rgba(122,51,66,.08);
     }
 
     .pig-face {
@@ -2776,16 +2820,18 @@
     }
 
     .passport {
-      border: 1px solid var(--line);
+      min-height: 0;
+      border: 1px solid #ead3b8;
       border-radius: 8px;
       background:
-        linear-gradient(90deg, rgba(31,41,55,.08) 0 1px, transparent 1px 50%),
-        linear-gradient(180deg, #fffdf8, #fff);
-      background-size: 14px 14px;
+        linear-gradient(90deg, rgba(185,124,64,.1) 0 1px, transparent 1px 50%),
+        linear-gradient(180deg, rgba(255,255,255,.86), rgba(255,250,241,.94));
+      background-size: 18px 18px;
       padding: 12px;
       display: grid;
       gap: 8px;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.72);
+      box-shadow: var(--shadow), inset 0 0 0 1px rgba(255,255,255,.72);
+      overflow: hidden;
     }
 
     .passport strong {
@@ -2823,26 +2869,43 @@
     .stamp-album {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
+      gap: 10px;
+      min-height: 0;
+      overflow: auto;
+      padding: 2px 3px 8px 2px;
+      scrollbar-width: thin;
     }
 
     .stamp-card {
-      min-height: 104px;
-      border: 2px solid var(--stamp-color, #1f2937);
-      border-radius: 3px;
+      min-height: 116px;
+      border: 1px solid color-mix(in srgb, var(--stamp-color, #1f2937) 70%, #fff 30%);
+      border-radius: 10px;
       background:
-        linear-gradient(90deg, transparent 63%, rgba(31,41,55,.09) 64%),
-        radial-gradient(circle at 14% 16%, rgba(255,255,255,.86), transparent 18%),
-        #fffdf8;
+        linear-gradient(90deg, rgba(255,255,255,.72) 0 58%, rgba(255,248,236,.94) 59%),
+        radial-gradient(circle at 12% 16%, rgba(255,255,255,.92), transparent 18%),
+        linear-gradient(180deg, #fffefb, #fff7ee);
       color: var(--stamp-color, #1f2937);
-      padding: 7px;
+      padding: 9px;
       display: grid;
-      grid-template-columns: 1.45fr .9fr;
-      gap: 6px;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.72);
+      grid-template-columns: .95fr 1.05fr;
+      gap: 9px;
+      box-shadow:
+        0 1px 0 rgba(255,255,255,.9) inset,
+        0 10px 18px rgba(122,74,0,.08);
       cursor: pointer;
       transition: 160ms ease;
       position: relative;
+      overflow: hidden;
+    }
+
+    .stamp-card::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 9px;
+      background: linear-gradient(90deg, rgba(122,74,0,.18), rgba(122,74,0,.04));
     }
 
     .stamp-card::after {
@@ -2861,31 +2924,36 @@
     }
 
     .stamp-visual {
-      border: 1px solid currentColor;
+      border: 2px dashed currentColor;
+      border-radius: 50%;
       display: grid;
       place-items: center;
       min-width: 0;
       background:
-        radial-gradient(circle at 28% 24%, currentColor 0 3px, transparent 4px),
-        linear-gradient(135deg, transparent 48%, currentColor 49% 51%, transparent 52%);
-      font-size: 20px;
+        radial-gradient(circle at 26% 22%, rgba(255,255,255,.88), transparent 20%),
+        radial-gradient(circle, rgba(255,255,255,.7), rgba(255,255,255,.18));
+      font-size: 18px;
       font-weight: 950;
       letter-spacing: 0;
+      aspect-ratio: 1;
+      align-self: center;
+      transform: rotate(-6deg);
     }
 
     .stamp-info {
       display: grid;
       align-content: space-between;
       min-width: 0;
-      font-size: 9px;
+      font-size: 10px;
       font-weight: 950;
-      line-height: 1.05;
+      line-height: 1.15;
       text-transform: uppercase;
     }
 
     .stamp-info strong {
-      font-size: 10px;
-      line-height: 1.05;
+      font-size: 12px;
+      line-height: 1.15;
+      color: #1f2937;
     }
 
     .stamp-date {
@@ -2907,8 +2975,9 @@
       border-style: dashed;
       color: #8b95a5;
       background:
-        linear-gradient(90deg, transparent 63%, rgba(31,41,55,.05) 64%),
-        #f8fafc;
+        linear-gradient(90deg, rgba(255,255,255,.68) 0 58%, rgba(246,248,251,.9) 59%),
+        radial-gradient(circle at 12% 16%, rgba(255,255,255,.92), transparent 18%),
+        linear-gradient(180deg, #fbfcfe, #f4f6f9);
       filter: grayscale(.5);
     }
 
@@ -3285,8 +3354,30 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
+      .view.active#pet-view {
+        height: calc(100vh - 172px);
+        min-height: 560px;
+        overflow: hidden;
+      }
+
       .view.active#pet-view .pet-stage {
+        height: 100%;
         grid-template-columns: minmax(360px, .9fr) minmax(0, 1.1fr);
+        align-items: stretch;
+      }
+
+      .view.active#pet-view .pet-room {
+        min-height: 0;
+        height: 100%;
+      }
+
+      .view.active#pet-view .passport {
+        height: 100%;
+        grid-template-rows: auto auto auto auto minmax(0, 1fr);
+      }
+
+      .view.active#pet-view .stamp-album {
+        align-content: start;
       }
 
       .view.active#report-view {
