@@ -3512,6 +3512,7 @@
       }
 
       .view.active#rewards-view .travel-map {
+        --travel-panel-height: clamp(560px, calc(100vh - 260px), 720px);
         grid-template-columns: minmax(0, 1.15fr) minmax(360px, .85fr);
         align-items: stretch;
       }
@@ -3522,7 +3523,17 @@
 
       .view.active#rewards-view #worldMap {
         min-height: 430px;
-        height: 100%;
+        height: var(--travel-panel-height);
+        align-self: stretch;
+      }
+
+      .view.active#rewards-view.route-exploring #journeyPanel {
+        height: var(--travel-panel-height);
+        overflow: hidden;
+      }
+
+      .view.active#rewards-view.route-exploring #journeyPanel .route-chapter-list {
+        max-height: calc(var(--travel-panel-height) - 238px);
       }
 
       .view.active#rewards-view #journeyPanel,
