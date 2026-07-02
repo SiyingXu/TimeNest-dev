@@ -174,6 +174,52 @@
       grid-column: 1 / -1;
     }
 
+    .category-select {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+
+    .category-option {
+      position: relative;
+      min-height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .category-option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .category-option:has(input:checked) {
+      color: #0f5f52;
+      background: #e9f7f1;
+      box-shadow: inset 0 0 0 1px rgba(71, 178, 151, .32);
+    }
+
+    .log-category {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 1px 5px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.55);
+      color: #0f5f52;
+      font-weight: 900;
+    }
+
     .edit-note {
       display: none;
       grid-column: 1 / -1;
@@ -3631,6 +3677,12 @@
             <input id="planTitle" type="text" maxlength="40" placeholder="例如：写论文 / 健身 / 做饭">
             <input id="planStart" type="time" value="09:00" aria-label="开始时间">
             <input id="planEnd" type="time" value="10:00" aria-label="结束时间">
+            <div class="category-select" aria-label="记录分类">
+              <label class="category-option"><input type="radio" name="logCategory" value="daily">日常</label>
+              <label class="category-option"><input type="radio" name="logCategory" value="study" checked>学习</label>
+              <label class="category-option"><input type="radio" name="logCategory" value="work">工作</label>
+              <label class="category-option"><input type="radio" name="logCategory" value="leisure">娱乐</label>
+            </div>
             <div class="edit-note" id="planEditNote"></div>
             <button class="primary" id="addPlan">加入计划</button>
             <button class="secondary" id="addTimeLog">加入记录</button>
@@ -3850,6 +3902,13 @@
       { id: "sight", name: "景点" },
       { id: "wish", name: "愿望" }
     ];
+
+    const logCategories = {
+      daily: { name: "日常", reward: false },
+      study: { name: "学习", reward: true },
+      work: { name: "工作", reward: true },
+      leisure: { name: "娱乐", reward: false }
+    };
 
     const shopItems = [
       { id: "tuebingen-card", category: "city", name: "图宾根城市卡", price: 0, desc: "Base 城市，记录第一段稳定作息。", icon: "TÜ", color: "#eff7f4", region: "德国", mapScope: "germany", zoomTo: "tuebingen-city", stamp: "TUE", x: 42, y: 57, rarity: "base", border: "green", art: "tuebingen", cardAsset: "assets/visual/generated/card-tuebingen-handdrawn.png", cardLine: "内卡河、老城、大学城日常。" },
@@ -4103,7 +4162,12 @@
       }
       parsed.plans ??= [];
       parsed.timeLogs = Array.isArray(parsed.timeLogs) ? parsed.timeLogs : [];
-      parsed.plans = parsed.plans.map(plan => ({ ...plan, taskId: plan.taskId || null }));
+      parsed.plans = parsed.plans.map(plan => ({ ...plan, taskId: plan.taskId || null, category: plan.category || "study" }));
+      parsed.timeLogs = parsed.timeLogs.map(log => ({
+        ...log,
+        category: log.category || "daily",
+        reward: log.reward || { minutes: 0, coins: 0 }
+      }));
       parsed.history = (parsed.history || []).map(item => ({ ...item, date: item.date || todayKey }));
       if (parsed.date !== todayKey) {
         parsed.date = todayKey;
@@ -4400,7 +4464,7 @@
             <div class="plan-meta">
               <span>${item.start}-${item.end}</span>
               <span>${formatMinutes(item.minutes)}</span>
-              <span>${statusText}</span>
+              <span>${type === "log" ? `<span class="log-category">${logCategoryName(item.category)}</span>` : statusText}</span>
             </div>
           </div>
         `;
@@ -5809,25 +5873,85 @@
       return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
     }
 
-    function addTimeLog({ title, start, end, planId = null, taskId = null }) {
+    function selectedLogCategory() {
+      return document.querySelector('input[name="logCategory"]:checked')?.value || "study";
+    }
+
+    function setSelectedLogCategory(category) {
+      const safeCategory = logCategories[category] ? category : "study";
+      const input = document.querySelector(`input[name="logCategory"][value="${safeCategory}"]`);
+      if (input) input.checked = true;
+    }
+
+    function logCategoryName(category) {
+      return logCategories[category]?.name || "日常";
+    }
+
+    function logRewardFor(category, minutes) {
+      if (!logCategories[category]?.reward) return { minutes: 0, coins: 0 };
+      return { minutes, coins: minutes };
+    }
+
+    function settleTimeLogReward(log, previousReward = { minutes: 0, coins: 0 }) {
+      const oldMinutes = previousReward.minutes || 0;
+      const oldCoins = previousReward.coins || 0;
+      if (oldMinutes) state.focusMinutes = Math.max(0, state.focusMinutes - oldMinutes);
+      if (oldCoins) state.coins = Math.max(0, state.coins - oldCoins);
+      state.records = state.records.filter(record => record.kind !== "time-log-reward" || record.logId !== log.id);
+      state.history = state.history.filter(item => item.logId !== log.id);
+
+      const reward = logRewardFor(log.category, log.minutes);
+      log.reward = reward;
+      if (reward.minutes) state.focusMinutes += reward.minutes;
+      if (reward.coins) {
+        state.coins += reward.coins;
+        const label = `${logCategoryName(log.category)}记录「${log.title}」`;
+        state.history.unshift({
+          text: label,
+          amount: reward.coins,
+          date: todayKey,
+          time: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }),
+          logId: log.id
+        });
+        state.history = state.history.slice(0, 8);
+        state.records.push({
+          kind: "time-log-reward",
+          logId: log.id,
+          label,
+          coins: reward.coins,
+          minutes: reward.minutes,
+          date: todayKey,
+          ts: Date.now()
+        });
+        state.records = state.records.slice(-500);
+      }
+      return reward;
+    }
+
+    function addTimeLog({ title, start, end, planId = null, taskId = null, category = "study", skipReward = false }) {
       const minutes = minutesBetween(start, end);
       const existing = planId ? state.timeLogs.find(log => log.planId === planId) : null;
       if (existing) {
+        const previousReward = existing.reward || { minutes: 0, coins: 0 };
         existing.title = title;
         existing.start = start;
         existing.end = end;
         existing.minutes = minutes;
         existing.taskId = taskId;
+        existing.category = category;
+        if (!skipReward) settleTimeLogReward(existing, previousReward);
         return existing;
       }
-      const log = { id: makeId(), title, start, end, minutes, planId, taskId, date: todayKey };
+      const log = { id: makeId(), title, start, end, minutes, planId, taskId, category, reward: { minutes: 0, coins: 0 }, date: todayKey };
       state.timeLogs.push(log);
+      if (!skipReward) settleTimeLogReward(log);
       return log;
     }
 
     function deleteTimeLog(id) {
       const log = state.timeLogs.find(item => item.id === id);
       if (!log) return;
+      settleTimeLogReward({ ...log, category: "daily", reward: { minutes: 0, coins: 0 } }, log.reward || { minutes: 0, coins: 0 });
       state.timeLogs = state.timeLogs.filter(item => item.id !== id);
       if (editingTimeLogId === id) resetPlanForm();
       saveState();
@@ -5844,6 +5968,7 @@
       document.querySelector("#planTitle").value = log.title;
       document.querySelector("#planStart").value = log.start;
       document.querySelector("#planEnd").value = log.end;
+      setSelectedLogCategory(log.category);
       document.querySelector("#addPlan").textContent = "加入计划";
       document.querySelector("#addTimeLog").textContent = "保存记录";
       const note = document.querySelector("#planEditNote");
@@ -5860,7 +5985,7 @@
         return;
       }
       plan.done = true;
-      addTimeLog({ title: plan.title, start: plan.start, end: plan.end, planId: plan.id, taskId: plan.taskId });
+      addTimeLog({ title: plan.title, start: plan.start, end: plan.end, planId: plan.id, taskId: plan.taskId, category: plan.category || "study" });
       state.records.push({
         kind: "plan",
         planId: plan.id,
@@ -5907,6 +6032,9 @@
         record.kind === "task" && record.taskId === linkedTask.id && record.fromPlanId === plan.id
       );
       state.records = state.records.filter(record => record.planId !== plan.id);
+      state.timeLogs
+        .filter(log => log.planId === plan.id)
+        .forEach(log => settleTimeLogReward({ ...log, category: "daily", reward: { minutes: 0, coins: 0 } }, log.reward || { minutes: 0, coins: 0 }));
       state.timeLogs = state.timeLogs.filter(log => log.planId !== plan.id);
       if (linkedTask) {
         const hasOtherDonePlan = state.plans.some(item => item.id !== plan.id && item.taskId === linkedTask.id && item.done);
@@ -5926,6 +6054,7 @@
       document.querySelector("#planTitle").value = plan.title;
       document.querySelector("#planStart").value = plan.start;
       document.querySelector("#planEnd").value = plan.end;
+      setSelectedLogCategory(plan.category || "study");
       document.querySelector("#addPlan").textContent = "保存修改";
       document.querySelector("#addTimeLog").textContent = "加入记录";
       const note = document.querySelector("#planEditNote");
@@ -5939,6 +6068,9 @@
       if (!plan) return;
       state.plans = state.plans.filter(item => item.id !== id);
       state.records = state.records.filter(record => record.planId !== id);
+      state.timeLogs
+        .filter(log => log.planId === id)
+        .forEach(log => settleTimeLogReward({ ...log, category: "daily", reward: { minutes: 0, coins: 0 } }, log.reward || { minutes: 0, coins: 0 }));
       state.timeLogs = state.timeLogs.filter(log => log.planId !== id);
       if (editingPlanId === id) resetPlanForm();
       saveState();
@@ -5951,6 +6083,7 @@
       editingTimeLogId = null;
       planningTaskId = null;
       document.querySelector("#planTitle").value = "";
+      setSelectedLogCategory("study");
       document.querySelector("#addPlan").textContent = "加入计划";
       document.querySelector("#addTimeLog").textContent = "加入记录";
       const note = document.querySelector("#planEditNote");
@@ -6047,7 +6180,9 @@
       addTimeLog({
         title: timerTitle,
         start: dateToTime(startDate),
-        end: dateToTime(endDate)
+        end: dateToTime(endDate),
+        category: "study",
+        skipReward: true
       });
       const reward = spent;
       state.focusMinutes += spent;
@@ -6090,6 +6225,7 @@
       const title = document.querySelector("#planTitle").value.trim();
       const start = document.querySelector("#planStart").value;
       const end = document.querySelector("#planEnd").value;
+      const category = selectedLogCategory();
       if (!title || !start || !end) {
         showToast("先填完整计划、开始和结束时间。");
         return;
@@ -6103,18 +6239,19 @@
           plan.end = end;
           plan.minutes = minutes;
           plan.taskId = planningTaskId;
+          plan.category = category;
           if (plan.done) {
             state.records = state.records.map(record => record.planId === plan.id
               ? { ...record, label: title, minutes }
               : record
             );
-            addTimeLog({ title, start, end, planId: plan.id, taskId: planningTaskId });
+            addTimeLog({ title, start, end, planId: plan.id, taskId: planningTaskId, category });
           }
         }
         resetPlanForm();
         showToast(`已保存修改：${title}`);
       } else {
-        state.plans.push({ id: makeId(), title, start, end, minutes, done: false, taskId: planningTaskId });
+        state.plans.push({ id: makeId(), title, start, end, minutes, done: false, taskId: planningTaskId, category });
         resetPlanForm();
         showToast(`已加入计划：${title}`);
       }
@@ -6126,6 +6263,7 @@
       const title = document.querySelector("#planTitle").value.trim();
       const start = document.querySelector("#planStart").value;
       const end = document.querySelector("#planEnd").value;
+      const category = selectedLogCategory();
       if (!title || !start || !end) {
         showToast("先填完整记录、开始和结束时间。");
         return;
@@ -6133,16 +6271,20 @@
       if (editingTimeLogId) {
         const log = state.timeLogs.find(item => item.id === editingTimeLogId);
         if (log) {
+          const previousReward = log.reward || { minutes: 0, coins: 0 };
           log.title = title;
           log.start = start;
           log.end = end;
           log.minutes = minutesBetween(start, end);
           log.taskId = planningTaskId;
+          log.category = category;
+          settleTimeLogReward(log, previousReward);
         }
-        showToast(`已保存记录：${title}`);
+        const rewarded = logCategories[category]?.reward;
+        showToast(rewarded ? `已保存记录并结算：${title}` : `已保存记录：${title}`);
       } else {
-        addTimeLog({ title, start, end, taskId: planningTaskId });
-        showToast(`已加入记录：${title}`);
+        const log = addTimeLog({ title, start, end, taskId: planningTaskId, category });
+        showToast(log.reward?.coins ? `已加入${logCategoryName(category)}记录，获得 ${log.reward.coins} 金币` : `已加入记录：${title}`);
       }
       resetPlanForm();
       saveState();
