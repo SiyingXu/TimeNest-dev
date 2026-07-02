@@ -245,7 +245,7 @@
       position: relative;
       min-height: 810px;
       display: grid;
-      grid-template-columns: 58px 1fr;
+      grid-template-columns: 58px 1fr 1fr;
     }
 
     .timeline-hour {
@@ -263,16 +263,50 @@
     }
 
     .timeline-line {
+      grid-column: 2 / 4;
       min-height: 45px;
       border-bottom: 1px solid #eef1f5;
     }
 
     .timeline-events {
       position: absolute;
+      top: 0;
+      bottom: 0;
+    }
+
+    .timeline-events.plan-events {
+      left: 58px;
+      right: calc(50% + 4px);
+    }
+
+    .timeline-events.record-events {
+      left: calc(50% + 4px);
+      right: 7px;
+    }
+
+    .timeline-column-labels {
+      position: absolute;
       left: 58px;
       right: 7px;
       top: 0;
-      bottom: 0;
+      z-index: 3;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .timeline-column-labels span {
+      display: inline-flex;
+      width: fit-content;
+      border: 1px solid rgba(31,41,55,.08);
+      border-radius: 999px;
+      background: rgba(255,255,255,.82);
+      padding: 4px 8px;
+      color: #64748b;
+      font-size: 10px;
+      font-weight: 900;
+      box-shadow: 0 5px 14px rgba(31,41,55,.07);
     }
 
     .now-line {
@@ -344,10 +378,13 @@
     }
 
     .plan-item.done {
-      opacity: .76;
-      background: #f6fbf8;
-      border-color: #b7ded1;
-      border-left-color: var(--mint);
+      opacity: .82;
+    }
+
+    .record-item {
+      border-color: rgba(61,169,137,.32);
+      border-left-color: #3da989;
+      background: #eefaf5;
     }
 
     .plan-title {
@@ -3065,6 +3102,7 @@
             <input id="planEnd" type="time" value="10:00" aria-label="结束时间">
             <div class="edit-note" id="planEditNote"></div>
             <button class="primary" id="addPlan">加入计划</button>
+            <button class="secondary" id="addTimeLog">加入记录</button>
           </div>
           <div class="compare-strip">
             <div class="compare-row">
@@ -3073,7 +3111,7 @@
               <strong id="plannedMinutes">0分</strong>
             </div>
             <div class="compare-row">
-              <span>完成</span>
+              <span>记录</span>
               <div class="meter"><div class="meter-fill" id="actualMeter"></div></div>
               <strong id="actualMinutes">0分</strong>
             </div>
@@ -3255,6 +3293,7 @@
       wishlist: [],
       records: [],
       plans: [],
+      timeLogs: [],
       tasks: [
         { id: makeId(), name: "整理今天最重要的 3 件事", reward: 10, done: false },
         { id: makeId(), name: "专注学习 25 分钟", reward: 25, done: false }
@@ -3513,6 +3552,7 @@
       parsed.wishlist ??= [];
       parsed.records ??= [];
       parsed.plans ??= [];
+      parsed.timeLogs = Array.isArray(parsed.timeLogs) ? parsed.timeLogs : [];
       parsed.plans = parsed.plans.map(plan => ({ ...plan, taskId: plan.taskId || null }));
       parsed.history = (parsed.history || []).map(item => ({ ...item, date: item.date || todayKey }));
       if (parsed.date !== todayKey) {
@@ -3521,6 +3561,7 @@
         parsed.focusMinutes = 0;
         parsed.tasks = parsed.tasks.map(task => ({ ...task, done: false }));
         parsed.plans = [];
+        parsed.timeLogs = [];
       }
       return parsed;
     }
@@ -3670,7 +3711,7 @@
     function renderPlans() {
       const root = document.querySelector("#planList");
       const planned = state.plans.reduce((sum, plan) => sum + plan.minutes, 0);
-      const actual = state.plans.filter(plan => plan.done).reduce((sum, plan) => sum + plan.minutes, 0);
+      const actual = state.timeLogs.reduce((sum, log) => sum + log.minutes, 0);
       const max = Math.max(planned, actual, 1);
       document.querySelector("#plannedMinutes").textContent = formatMinutes(planned);
       document.querySelector("#actualMinutes").textContent = formatMinutes(actual);
@@ -3696,12 +3737,15 @@
             </div>
           `;
           }).join("")}
-          <div class="timeline-events"></div>
+          <div class="timeline-column-labels"><span>计划</span><span>记录</span></div>
+          <div class="timeline-events plan-events"></div>
+          <div class="timeline-events record-events"></div>
           ${showNow ? `<div class="now-line" style="--top:${nowTop}%"><span>现在 ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}</span></div>` : ""}
-          ${state.plans.length ? "" : `<div class="timeline-empty">先把任务安排进时间轴，今天会更像一张真正的日程表。</div>`}
+          ${state.plans.length || state.timeLogs.length ? "" : `<div class="timeline-empty">先把任务安排进时间轴，今天会更像一张真正的日程表。</div>`}
         </div>
       `;
-      const eventLayer = root.querySelector(".timeline-events");
+      const planLayer = root.querySelector(".plan-events");
+      const recordLayer = root.querySelector(".record-events");
       [...state.plans].sort((a, b) => a.start.localeCompare(b.start)).forEach((plan, index) => {
         const linkedTask = plan.taskId ? state.tasks.find(task => task.id === plan.taskId) : null;
         const start = timeToMinutes(plan.start);
@@ -3733,7 +3777,35 @@
         row.querySelector('[data-action="done"]').addEventListener("click", () => completePlan(plan.id));
         row.querySelector('[data-action="edit"]').addEventListener("click", () => editPlan(plan.id));
         row.querySelector('[data-action="delete"]').addEventListener("click", () => deletePlan(plan.id));
-        eventLayer.appendChild(row);
+        planLayer.appendChild(row);
+      });
+      [...state.timeLogs].sort((a, b) => a.start.localeCompare(b.start)).forEach(log => {
+        const start = timeToMinutes(log.start);
+        const end = start + log.minutes;
+        const visibleStart = Math.max(start, timelineStart);
+        const visibleEnd = Math.min(end, timelineEnd);
+        if (visibleEnd <= timelineStart || visibleStart >= timelineEnd) return;
+        const top = (visibleStart - timelineStart) / timelineMinutes * 100;
+        const visibleMinutes = Math.max(15, visibleEnd - visibleStart);
+        const minHeight = 32 / 810 * 100;
+        const height = Math.min(100 - top, Math.max(minHeight, visibleMinutes / timelineMinutes * 100));
+        const row = document.createElement("div");
+        row.className = "plan-item record-item";
+        row.style.setProperty("--top", `${top}%`);
+        row.style.setProperty("--height", `${height}%`);
+        row.style.setProperty("--plan-color", "#3da989");
+        row.innerHTML = `
+          <div>
+            <div class="plan-title"></div>
+            <div class="plan-meta">${log.start}-${log.end} Â· ${formatMinutes(log.minutes)} Â· è®°å½•</div>
+          </div>
+          <div class="plan-actions">
+            <button class="icon-button" data-action="delete" title="åˆ é™¤è®°å½•">Ã—</button>
+          </div>
+        `;
+        row.querySelector(".plan-title").textContent = log.title;
+        row.querySelector('[data-action="delete"]').addEventListener("click", () => deleteTimeLog(log.id));
+        recordLayer.appendChild(row);
       });
     }
 
@@ -5063,6 +5135,31 @@
       return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
     }
 
+    function addTimeLog({ title, start, end, planId = null, taskId = null }) {
+      const minutes = minutesBetween(start, end);
+      const existing = planId ? state.timeLogs.find(log => log.planId === planId) : null;
+      if (existing) {
+        existing.title = title;
+        existing.start = start;
+        existing.end = end;
+        existing.minutes = minutes;
+        existing.taskId = taskId;
+        return existing;
+      }
+      const log = { id: makeId(), title, start, end, minutes, planId, taskId, date: todayKey };
+      state.timeLogs.push(log);
+      return log;
+    }
+
+    function deleteTimeLog(id) {
+      const log = state.timeLogs.find(item => item.id === id);
+      if (!log) return;
+      state.timeLogs = state.timeLogs.filter(item => item.id !== id);
+      saveState();
+      render();
+      showToast(`已删除记录：${log.title}`);
+    }
+
     function completePlan(id) {
       const plan = state.plans.find(item => item.id === id);
       if (!plan) return;
@@ -5071,6 +5168,7 @@
         return;
       }
       plan.done = true;
+      addTimeLog({ title: plan.title, start: plan.start, end: plan.end, planId: plan.id, taskId: plan.taskId });
       state.records.push({
         kind: "plan",
         planId: plan.id,
@@ -5117,6 +5215,7 @@
         record.kind === "task" && record.taskId === linkedTask.id && record.fromPlanId === plan.id
       );
       state.records = state.records.filter(record => record.planId !== plan.id);
+      state.timeLogs = state.timeLogs.filter(log => log.planId !== plan.id);
       if (linkedTask) {
         const hasOtherDonePlan = state.plans.some(item => item.id !== plan.id && item.taskId === linkedTask.id && item.done);
         if (completedTaskFromPlan && !hasOtherDonePlan && linkedTask.done) undoTask(linkedTask, { defer: true });
@@ -5146,6 +5245,7 @@
       if (!plan) return;
       state.plans = state.plans.filter(item => item.id !== id);
       state.records = state.records.filter(record => record.planId !== id);
+      state.timeLogs = state.timeLogs.filter(log => log.planId !== id);
       if (editingPlanId === id) resetPlanForm();
       saveState();
       render();
@@ -5303,6 +5403,7 @@
               ? { ...record, label: title, minutes }
               : record
             );
+            addTimeLog({ title, start, end, planId: plan.id, taskId: planningTaskId });
           }
         }
         resetPlanForm();
@@ -5314,6 +5415,21 @@
       }
       saveState();
       render();
+    });
+
+    document.querySelector("#addTimeLog").addEventListener("click", () => {
+      const title = document.querySelector("#planTitle").value.trim();
+      const start = document.querySelector("#planStart").value;
+      const end = document.querySelector("#planEnd").value;
+      if (!title || !start || !end) {
+        showToast("先填完整记录、开始和结束时间。");
+        return;
+      }
+      addTimeLog({ title, start, end, taskId: planningTaskId });
+      resetPlanForm();
+      saveState();
+      render();
+      showToast(`已加入记录：${title}`);
     });
 
     document.querySelector("#planTitle").addEventListener("keydown", event => {
