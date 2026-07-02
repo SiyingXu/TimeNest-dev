@@ -2876,6 +2876,25 @@
       scrollbar-width: thin;
     }
 
+    .stamp-album::after {
+      content: attr(data-note);
+      display: block;
+      grid-column: 1 / -1;
+      min-height: 32px;
+      border: 1px dashed rgba(185,124,64,.34);
+      border-radius: 10px;
+      background: rgba(255,248,236,.72);
+      color: #8a5a2f;
+      padding: 9px 12px;
+      font-size: 11px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .stamp-album[data-note=""]::after {
+      display: none;
+    }
+
     .stamp-card {
       min-height: 116px;
       border: 1px solid color-mix(in srgb, var(--stamp-color, #1f2937) 70%, #fff 30%);
@@ -3268,7 +3287,7 @@
 
       .view.active#home-view {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+        grid-template-columns: minmax(380px, 1fr) minmax(0, 2fr);
         grid-template-rows: auto 1fr;
         gap: 16px;
         align-items: start;
@@ -4868,10 +4887,17 @@
         ? item.category === "city" || item.category === "ticket"
         : item.category === activeStampCategory
       ).sort((a, b) => (a.routeIndex ?? 999) - (b.routeIndex ?? 999) || a.name.localeCompare(b.name, "zh-CN"));
+      const visibleStamps = [...stamps].sort((a, b) => {
+        const rank = item => isOwned(item) ? 0 : isUnlocked(item) ? 1 : 2;
+        return rank(a) - rank(b) || ((a.routeIndex ?? 999) - (b.routeIndex ?? 999)) || a.name.localeCompare(b.name, "zh-CN");
+      }).slice(0, 6);
       const colors = ["#178f72", "#2563eb", "#e0523f", "#1f2937", "#7c3aed", "#d24777", "#0f766e", "#b45309"];
       const album = document.querySelector("#stampAlbum");
       album.innerHTML = "";
-      stamps.forEach((item, index) => {
+      album.dataset.note = stamps.length > visibleStamps.length
+        ? `\u8fd8\u6709 ${stamps.length - visibleStamps.length} \u679a\u7ae0\u6536\u5728\u62a4\u7167\u540e\u9875`
+        : "";
+      visibleStamps.forEach((item, index) => {
         const owned = isOwned(item);
         const unlocked = isUnlocked(item);
         const card = document.createElement("div");
