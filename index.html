@@ -173,10 +173,6 @@
       grid-column: 1 / -1;
     }
 
-    .schedule-form .primary {
-      grid-column: 1 / -1;
-    }
-
     .edit-note {
       display: none;
       grid-column: 1 / -1;
@@ -369,12 +365,13 @@
       gap: 5px;
       align-items: start;
       padding: 6px 7px 6px 9px;
-      border: 1px solid color-mix(in srgb, var(--plan-color) 38%, #ffffff);
-      border-left: 6px solid var(--plan-color);
+      border: 1px solid rgba(227,107,127,.28);
+      border-left: 6px solid var(--rose);
       border-radius: 8px;
-      background: color-mix(in srgb, var(--plan-color) 18%, #ffffff);
+      background: #fde8ee;
       box-shadow: 0 7px 16px rgba(31,41,55,.08);
       overflow: hidden;
+      cursor: pointer;
     }
 
     .plan-item.done {
@@ -388,7 +385,7 @@
     }
 
     .plan-title {
-      font-size: 11px;
+      font-size: 9px;
       font-weight: 850;
       line-height: 1.18;
       overflow: hidden;
@@ -398,7 +395,7 @@
 
     .plan-meta {
       color: var(--muted);
-      font-size: 10px;
+      font-size: 8px;
       line-height: 1.18;
       margin-top: 1px;
       white-space: nowrap;
@@ -412,9 +409,9 @@
     }
 
     .plan-actions .icon-button {
-      width: 22px;
-      height: 22px;
-      font-size: 10px;
+      width: 18px;
+      height: 18px;
+      font-size: 8px;
       background: rgba(255,255,255,.78);
     }
 
@@ -552,6 +549,10 @@
       grid-template-columns: 1fr 1fr;
       gap: 10px;
       margin-bottom: 12px;
+    }
+
+    .timer-config input[type="text"] {
+      grid-column: 1 / -1;
     }
 
     .mode-switch {
@@ -3151,6 +3152,7 @@
             <button class="mode-button" data-timer-mode="stopwatch">正计时</button>
           </div>
           <div class="timer-config">
+            <input id="timerTaskTitle" type="text" maxlength="40" placeholder="本次计时任务名，例如：写论文">
             <input id="timerMinutes" type="number" min="1" max="600" value="25" aria-label="倒计时分钟">
             <input value="每分钟 +1 金币" readonly aria-label="奖励规则">
           </div>
@@ -3516,6 +3518,7 @@
     let mapMode = "world";
     let timerMode = "countdown";
     let editingPlanId = null;
+    let editingTimeLogId = null;
     let editingTaskId = null;
     let planningTaskId = null;
 
@@ -3807,7 +3810,11 @@
           </div>
         `;
         row.querySelector(".plan-title").textContent = log.title;
-        row.querySelector('[data-action="delete"]').addEventListener("click", () => deleteTimeLog(log.id));
+        row.querySelector('[data-action="delete"]').addEventListener("click", event => {
+          event.stopPropagation();
+          deleteTimeLog(log.id);
+        });
+        row.addEventListener("click", () => editTimeLog(log.id));
         recordLayer.appendChild(row);
       });
     }
@@ -5114,6 +5121,7 @@
       if (!task) return;
       planningTaskId = id;
       editingPlanId = null;
+      editingTimeLogId = null;
       const now = new Date();
       const current = now.getHours() * 60 + now.getMinutes();
       const rounded = Math.ceil(current / 30) * 30;
@@ -5123,6 +5131,7 @@
       document.querySelector("#planStart").value = minutesToTime(startMinutes);
       document.querySelector("#planEnd").value = minutesToTime(endMinutes);
       document.querySelector("#addPlan").textContent = "安排到时间轴";
+      document.querySelector("#addTimeLog").textContent = "加入记录";
       const note = document.querySelector("#planEditNote");
       note.textContent = `正在安排任务：${task.name}`;
       note.classList.add("active");
@@ -5136,6 +5145,10 @@
       const hour = Math.floor(normalized / 60);
       const minute = normalized % 60;
       return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    }
+
+    function dateToTime(date) {
+      return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
     }
 
     function addTimeLog({ title, start, end, planId = null, taskId = null }) {
@@ -5158,9 +5171,27 @@
       const log = state.timeLogs.find(item => item.id === id);
       if (!log) return;
       state.timeLogs = state.timeLogs.filter(item => item.id !== id);
+      if (editingTimeLogId === id) resetPlanForm();
       saveState();
       render();
       showToast(`已删除记录：${log.title}`);
+    }
+
+    function editTimeLog(id) {
+      const log = state.timeLogs.find(item => item.id === id);
+      if (!log) return;
+      editingTimeLogId = id;
+      editingPlanId = null;
+      planningTaskId = log.taskId || null;
+      document.querySelector("#planTitle").value = log.title;
+      document.querySelector("#planStart").value = log.start;
+      document.querySelector("#planEnd").value = log.end;
+      document.querySelector("#addPlan").textContent = "加入计划";
+      document.querySelector("#addTimeLog").textContent = "保存记录";
+      const note = document.querySelector("#planEditNote");
+      note.textContent = `正在编辑记录：${log.title}`;
+      note.classList.add("active");
+      showToast("已载入记录，修改后点保存记录。");
     }
 
     function completePlan(id) {
@@ -5232,11 +5263,13 @@
       const plan = state.plans.find(item => item.id === id);
       if (!plan) return;
       editingPlanId = id;
+      editingTimeLogId = null;
       planningTaskId = plan.taskId || null;
       document.querySelector("#planTitle").value = plan.title;
       document.querySelector("#planStart").value = plan.start;
       document.querySelector("#planEnd").value = plan.end;
       document.querySelector("#addPlan").textContent = "保存修改";
+      document.querySelector("#addTimeLog").textContent = "加入记录";
       const note = document.querySelector("#planEditNote");
       note.textContent = `正在编辑：${plan.title}`;
       note.classList.add("active");
@@ -5257,9 +5290,11 @@
 
     function resetPlanForm() {
       editingPlanId = null;
+      editingTimeLogId = null;
       planningTaskId = null;
       document.querySelector("#planTitle").value = "";
       document.querySelector("#addPlan").textContent = "加入计划";
+      document.querySelector("#addTimeLog").textContent = "加入记录";
       const note = document.querySelector("#planEditNote");
       note.textContent = "";
       note.classList.remove("active");
@@ -5348,9 +5383,18 @@
         showToast("至少专注 1 分钟再结算。");
         return;
       }
+      const endDate = new Date();
+      const startDate = timer.startedAt ? new Date(timer.startedAt) : new Date(endDate.getTime() - spent * 60000);
+      const timerTitle = document.querySelector("#timerTaskTitle").value.trim() || "专注计时";
+      addTimeLog({
+        title: timerTitle,
+        start: dateToTime(startDate),
+        end: dateToTime(endDate)
+      });
       const reward = spent;
       state.focusMinutes += spent;
       addCoins(reward, `专注 ${spent} 分钟`, { kind: "focus", minutes: spent });
+      document.querySelector("#timerTaskTitle").value = "";
       resetTimer();
     }
 
@@ -5428,11 +5472,23 @@
         showToast("先填完整记录、开始和结束时间。");
         return;
       }
-      addTimeLog({ title, start, end, taskId: planningTaskId });
+      if (editingTimeLogId) {
+        const log = state.timeLogs.find(item => item.id === editingTimeLogId);
+        if (log) {
+          log.title = title;
+          log.start = start;
+          log.end = end;
+          log.minutes = minutesBetween(start, end);
+          log.taskId = planningTaskId;
+        }
+        showToast(`已保存记录：${title}`);
+      } else {
+        addTimeLog({ title, start, end, taskId: planningTaskId });
+        showToast(`已加入记录：${title}`);
+      }
       resetPlanForm();
       saveState();
       render();
-      showToast(`已加入记录：${title}`);
     });
 
     document.querySelector("#planTitle").addEventListener("keydown", event => {
@@ -5459,6 +5515,7 @@
         return;
       }
       document.querySelector("#timerStart").textContent = "暂停";
+      if (!timer.startedAt) timer.startedAt = Date.now();
       timer.interval = setInterval(() => {
         if (timerMode === "countdown") {
           timer.left = Math.max(0, timer.left - 1);
