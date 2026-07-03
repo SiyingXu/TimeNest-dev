@@ -3389,11 +3389,6 @@
       box-shadow: inset 0 0 0 1px rgba(31, 41, 55, .035);
     }
 
-    .weekly-summary {
-      width: 100%;
-      max-width: 360px;
-    }
-
     .weekly-side {
       display: grid;
       gap: 12px;
@@ -4892,11 +4887,6 @@
               <div class="weekly-hour-label">${String(hour).padStart(2, "0")}</div>
               ${days.map(day => `<div class="weekly-cell" title="${day.label} ${String(hour).padStart(2, "0")}:00-${String(hour + 1).padStart(2, "0")}:00" style="--cell-color:${cellColor(day, hour)}"></div>`).join("")}
             `).join("")}
-          </div>
-          <div class="history weekly-summary">
-            <div class="history-item"><span>本周完成任务</span><strong>${weekTasks} 个</strong></div>
-            <div class="history-item"><span>计划实际完成</span><strong>${formatMinutes(weekPlanMinutes)}</strong></div>
-            <div class="history-item"><span>最佳专注日</span><strong>${bestDay.minutes ? `${bestDay.label} ${bestDay.minutes} 分` : "暂无"}</strong></div>
           </div>
         </div>
         <div class="weekly-side">
