@@ -647,6 +647,12 @@
       box-shadow: inset 0 0 0 14px #ffffff, var(--shadow);
     }
 
+    .timer-face.stopwatch {
+      background:
+        radial-gradient(circle at center, #fffdf8 0 55%, transparent 56%),
+        #e6ece8;
+    }
+
     .timer-time {
       font-size: 43px;
       font-weight: 900;
@@ -660,8 +666,34 @@
       margin-bottom: 12px;
     }
 
+    .timer-actions {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .timer-abandon {
+      border-radius: 8px;
+      background: #f8fafc;
+      color: #64748b;
+      font-weight: 800;
+      padding: 11px 12px;
+      min-height: 44px;
+      border: 1px solid #cbd5e1;
+    }
+
+    .timer-abandon:active {
+      transform: translateY(1px);
+    }
+
     .timer-config input[type="text"] {
       grid-column: 1 / -1;
+    }
+
+    #timerMinutes:disabled {
+      background: #f1f5f9;
+      color: #94a3b8;
+      border-color: #dbe4ec;
+      cursor: not-allowed;
+      opacity: 1;
     }
 
     .mode-switch {
@@ -3700,6 +3732,7 @@
           </div>
           <div class="timer-actions">
             <button class="primary" id="timerStart">开始</button>
+            <button class="timer-abandon" id="timerAbandon">放弃</button>
             <button class="secondary" id="timerFinish">结算</button>
           </div>
         </div>
@@ -4172,6 +4205,7 @@
       left: Math.max(1, Number(document.querySelector("#timerMinutes").value) || 25) * 60,
       elapsed: 0,
       startedAt: null,
+      runningSince: null,
       interval: null
     };
 
@@ -6307,15 +6341,34 @@
       openCardPreview(item);
     }
 
+    function currentTimerElapsed(now = Date.now()) {
+      const runningSeconds = timer.runningSince !== null ? Math.floor((now - timer.runningSince) / 1000) : 0;
+      return Math.max(0, timer.elapsed + runningSeconds);
+    }
+
+    function syncTimerFromClock(now = Date.now()) {
+      const elapsed = currentTimerElapsed(now);
+      timer.elapsed = elapsed;
+      timer.runningSince = timer.interval ? now : null;
+      if (timerMode === "countdown") {
+        timer.left = Math.max(0, timer.total - elapsed);
+      }
+      return elapsed;
+    }
+
     function updateTimerDisplay() {
-      const secondsValue = timerMode === "countdown" ? timer.left : timer.elapsed;
+      const elapsed = currentTimerElapsed();
+      if (timerMode === "countdown") {
+        timer.left = Math.max(0, timer.total - elapsed);
+      }
+      const secondsValue = timerMode === "countdown" ? timer.left : elapsed;
       const minutes = Math.floor(secondsValue / 60).toString().padStart(2, "0");
       const seconds = (secondsValue % 60).toString().padStart(2, "0");
       document.querySelector("#timerTime").textContent = `${minutes}:${seconds}`;
-      const done = timerMode === "countdown"
-        ? (timer.total ? (timer.total - timer.left) / timer.total : 0)
-        : ((timer.elapsed % 3600) / 3600);
-      document.querySelector("#timerFace").style.setProperty("--progress", `${done * 360}deg`);
+      const timerFace = document.querySelector("#timerFace");
+      timerFace.classList.toggle("stopwatch", timerMode === "stopwatch");
+      const done = timerMode === "countdown" && timer.total ? (timer.total - timer.left) / timer.total : 0;
+      timerFace.style.setProperty("--progress", `${done * 360}deg`);
     }
 
     function resetTimer() {
@@ -6327,11 +6380,13 @@
       timer.left = timer.total;
       timer.elapsed = 0;
       timer.startedAt = null;
+      timer.runningSince = null;
       document.querySelector("#timerStart").textContent = "开始";
       updateTimerDisplay();
     }
 
     function finishTimer() {
+      syncTimerFromClock();
       const spentSeconds = timerMode === "countdown" ? timer.total - timer.left : timer.elapsed;
       const spent = Math.max(0, Math.floor(spentSeconds / 60));
       if (spent < 1) {
@@ -6339,7 +6394,7 @@
         return;
       }
       const endDate = new Date();
-      const startDate = timer.startedAt ? new Date(timer.startedAt) : new Date(endDate.getTime() - spent * 60000);
+      const startDate = new Date(endDate.getTime() - spent * 60000);
       const timerTitle = document.querySelector("#timerTaskTitle").value.trim() || "专注计时";
       addTimeLog({
         title: timerTitle,
@@ -6353,6 +6408,12 @@
       addCoins(reward, `专注 ${spent} 分钟`, { kind: "focus", minutes: spent });
       document.querySelector("#timerTaskTitle").value = "";
       resetTimer();
+    }
+
+    function abandonTimer() {
+      const hadProgress = currentTimerElapsed() > 0 || (timerMode === "countdown" && timer.left < timer.total);
+      resetTimer();
+      showToast(hadProgress ? "已放弃本次计时，未记录时间。" : "本次计时已重置。");
     }
 
     function showToast(message) {
@@ -6473,25 +6534,27 @@
 
     document.querySelector("#timerStart").addEventListener("click", () => {
       if (timer.interval) {
+        syncTimerFromClock();
         clearInterval(timer.interval);
         timer.interval = null;
+        timer.runningSince = null;
         document.querySelector("#timerStart").textContent = "继续";
+        updateTimerDisplay();
         return;
       }
       document.querySelector("#timerStart").textContent = "暂停";
       if (!timer.startedAt) timer.startedAt = Date.now();
+      timer.runningSince = Date.now();
       timer.interval = setInterval(() => {
-        if (timerMode === "countdown") {
-          timer.left = Math.max(0, timer.left - 1);
-        } else {
-          timer.elapsed += 1;
-        }
+        syncTimerFromClock();
         updateTimerDisplay();
         if (timerMode === "countdown" && timer.left === 0) finishTimer();
       }, 1000);
     });
 
     document.querySelector("#timerFinish").addEventListener("click", finishTimer);
+    document.querySelector("#timerAbandon").addEventListener("click", abandonTimer);
+    document.addEventListener("visibilitychange", updateTimerDisplay);
     document.querySelector("#cityShelfButton")?.addEventListener("click", openCityShelf);
     document.addEventListener("click", closeTimelineMenu);
     document.addEventListener("click", closeTaskMenu);
