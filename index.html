@@ -197,6 +197,30 @@
       cursor: pointer;
     }
 
+    .category-option[data-category="daily"] {
+      --category-bg: #ecfdf5;
+      --category-border: #bbf7d0;
+      --category-text: #047857;
+    }
+
+    .category-option[data-category="study"] {
+      --category-bg: #fdf2f8;
+      --category-border: #fbcfe8;
+      --category-text: #be185d;
+    }
+
+    .category-option[data-category="work"] {
+      --category-bg: #fefce8;
+      --category-border: #fde68a;
+      --category-text: #854d0e;
+    }
+
+    .category-option[data-category="leisure"] {
+      --category-bg: #eff6ff;
+      --category-border: #bfdbfe;
+      --category-text: #1d4ed8;
+    }
+
     .category-option input {
       position: absolute;
       opacity: 0;
@@ -204,9 +228,9 @@
     }
 
     .category-option:has(input:checked) {
-      color: #0f5f52;
-      background: #e9f7f1;
-      box-shadow: inset 0 0 0 1px rgba(71, 178, 151, .32);
+      color: var(--category-text, #0f5f52);
+      background: var(--category-bg, #e9f7f1);
+      box-shadow: inset 0 0 0 1px var(--category-border, rgba(71, 178, 151, .32));
     }
 
     .log-category {
@@ -422,7 +446,7 @@
     }
 
     .plan-item.done {
-      opacity: .82;
+      opacity: .92;
     }
 
     .record-item {
@@ -3675,10 +3699,10 @@
             <input id="planStart" type="time" value="09:00" aria-label="开始时间">
             <input id="planEnd" type="time" value="10:00" aria-label="结束时间">
             <div class="category-select" aria-label="记录分类">
-              <label class="category-option"><input type="radio" name="logCategory" value="daily">日常</label>
-              <label class="category-option"><input type="radio" name="logCategory" value="study" checked>学习</label>
-              <label class="category-option"><input type="radio" name="logCategory" value="work">工作</label>
-              <label class="category-option"><input type="radio" name="logCategory" value="leisure">娱乐</label>
+              <label class="category-option" data-category="daily"><input type="radio" name="logCategory" value="daily">日常</label>
+              <label class="category-option" data-category="study"><input type="radio" name="logCategory" value="study" checked>学习</label>
+              <label class="category-option" data-category="work"><input type="radio" name="logCategory" value="work">工作</label>
+              <label class="category-option" data-category="leisure"><input type="radio" name="logCategory" value="leisure">娱乐</label>
             </div>
             <div class="edit-note" id="planEditNote"></div>
             <button class="primary" id="addPlan">加入计划</button>
@@ -3729,8 +3753,14 @@
           </div>
           <div class="timer-config">
             <input id="timerTaskTitle" type="text" maxlength="40" placeholder="本次计时任务名，例如：写论文">
+            <div class="category-select timer-category-select" aria-label="计时分类">
+              <label class="category-option" data-category="daily"><input type="radio" name="timerCategory" value="daily">日常</label>
+              <label class="category-option" data-category="study"><input type="radio" name="timerCategory" value="study" checked>学习</label>
+              <label class="category-option" data-category="work"><input type="radio" name="timerCategory" value="work">工作</label>
+              <label class="category-option" data-category="leisure"><input type="radio" name="timerCategory" value="leisure">娱乐</label>
+            </div>
             <input id="timerMinutes" type="number" min="1" max="600" value="25" aria-label="倒计时分钟">
-            <input value="每分钟 +1 金币" readonly aria-label="奖励规则">
+            <input id="timerRewardRule" value="每分钟 +1 金币" readonly aria-label="奖励规则">
           </div>
           <div class="timer-face" id="timerFace" style="--progress: 0deg">
             <div class="timer-time" id="timerTime">25:00</div>
@@ -3880,10 +3910,10 @@
     ];
 
     const logCategories = {
-      daily: { name: "日常", reward: false, bg: "#fff7ed", border: "#fed7aa", accent: "#fb923c", text: "#9a3412" },
-      study: { name: "学习", reward: true, bg: "#ecfdf5", border: "#a7f3d0", accent: "#34d399", text: "#047857" },
-      work: { name: "工作", reward: true, bg: "#eff6ff", border: "#bfdbfe", accent: "#60a5fa", text: "#1d4ed8" },
-      leisure: { name: "娱乐", reward: false, bg: "#f5f3ff", border: "#ddd6fe", accent: "#a78bfa", text: "#6d28d9" }
+      daily: { name: "日常", reward: false, bg: "#ecfdf5", border: "#bbf7d0", accent: "#6ee7b7", text: "#047857" },
+      study: { name: "学习", reward: true, bg: "#fdf2f8", border: "#fbcfe8", accent: "#f472b6", text: "#be185d" },
+      work: { name: "工作", reward: true, bg: "#fefce8", border: "#fde68a", accent: "#facc15", text: "#854d0e" },
+      leisure: { name: "娱乐", reward: false, bg: "#eff6ff", border: "#bfdbfe", accent: "#60a5fa", text: "#1d4ed8" }
     };
 
     const shopItems = [
@@ -4578,7 +4608,7 @@
         row.style.setProperty("--height", `${range.height}%`);
         row.style.setProperty("--lane-left", `${block.lane / block.laneCount * 100}%`);
         row.style.setProperty("--lane-width", `${100 / block.laneCount}%`);
-        const color = logCategoryStyle(item.category);
+        const color = type === "plan" ? planTimelineStyle(item.done) : logCategoryStyle(item.category);
         row.style.setProperty("--item-bg", color.bg);
         row.style.setProperty("--item-border", color.border);
         row.style.setProperty("--item-accent", color.accent);
@@ -4693,7 +4723,7 @@
       const byDay = Object.fromEntries(days.map(day => [day.key, day]));
       state.records.forEach(record => {
         if (!byDay[record.date]) return;
-        if (record.kind === "focus") byDay[record.date].minutes += record.minutes || 0;
+        if (record.kind === "focus" || record.kind === "time-log-reward") byDay[record.date].minutes += record.minutes || 0;
         if ((record.coins || 0) > 0) byDay[record.date].coins += record.coins;
         if (record.kind === "task") byDay[record.date].tasks += 1;
         if (record.kind === "plan") byDay[record.date].plans += record.minutes || 0;
@@ -6114,6 +6144,16 @@
       return document.querySelector('input[name="logCategory"]:checked')?.value || "study";
     }
 
+    function selectedTimerCategory() {
+      return document.querySelector('input[name="timerCategory"]:checked')?.value || "study";
+    }
+
+    function updateTimerRewardRule() {
+      const category = selectedTimerCategory();
+      const input = document.querySelector("#timerRewardRule");
+      if (input) input.value = logCategories[category]?.reward ? "每分钟 +1 金币" : "不结算金币";
+    }
+
     function setSelectedLogCategory(category) {
       const safeCategory = logCategories[category] ? category : "study";
       const input = document.querySelector(`input[name="logCategory"][value="${safeCategory}"]`);
@@ -6126,6 +6166,12 @@
 
     function logCategoryStyle(category) {
       return logCategories[category] || logCategories.daily;
+    }
+
+    function planTimelineStyle(done) {
+      return done
+        ? { bg: "#f1f5f9", border: "#cbd5e1", accent: "#94a3b8", text: "#64748b" }
+        : { bg: "#fde8ee", border: "rgba(227,107,127,.28)", accent: "#e36b7f", text: "#b94d61" };
     }
 
     function logRewardFor(category, minutes) {
@@ -6440,18 +6486,22 @@
       const endDate = new Date();
       const startDate = new Date(endDate.getTime() - spent * 60000);
       const timerTitle = document.querySelector("#timerTaskTitle").value.trim() || "专注计时";
-      addTimeLog({
+      const category = selectedTimerCategory();
+      const log = addTimeLog({
         title: timerTitle,
         start: dateToTime(startDate),
         end: dateToTime(endDate),
-        category: "study",
-        skipReward: true
+        category
       });
-      const reward = spent;
-      state.focusMinutes += spent;
-      addCoins(reward, `专注 ${spent} 分钟`, { kind: "focus", minutes: spent });
+      const reward = log.reward || { minutes: 0, coins: 0 };
       document.querySelector("#timerTaskTitle").value = "";
       resetTimer();
+      saveState();
+      render();
+      showToast(reward.coins
+        ? `专注 ${spent} 分钟，获得 ${reward.coins} 金币`
+        : `已记录${logCategoryName(category)}计时 ${spent} 分钟`
+      );
     }
 
     function abandonTimer() {
@@ -6565,6 +6615,9 @@
     });
 
     document.querySelector("#timerMinutes").addEventListener("change", resetTimer);
+    document.querySelectorAll('input[name="timerCategory"]').forEach(input => {
+      input.addEventListener("change", updateTimerRewardRule);
+    });
 
     document.querySelectorAll("[data-timer-mode]").forEach(button => {
       button.addEventListener("click", () => {
@@ -6638,6 +6691,7 @@
     }
 
     render();
+    updateTimerRewardRule();
     openRouteFromHash();
     updateTimerDisplay();
   </script>
