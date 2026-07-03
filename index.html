@@ -3346,6 +3346,85 @@
       margin-bottom: 14px;
     }
 
+    .weekly-overview {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 210px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .weekly-heatmap {
+      display: grid;
+      grid-template-columns: 42px repeat(7, minmax(22px, 1fr));
+      gap: 6px 8px;
+      align-items: center;
+    }
+
+    .weekly-day-label,
+    .weekly-hour-label {
+      color: #64748b;
+      font-size: 11px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .weekly-hour-label {
+      text-align: right;
+      padding-right: 4px;
+    }
+
+    .weekly-cell {
+      aspect-ratio: 1;
+      min-height: 18px;
+      border-radius: 5px;
+      background: var(--cell-color, #f2f4f7);
+      box-shadow: inset 0 0 0 1px rgba(31, 41, 55, .035);
+    }
+
+    .weekly-side {
+      display: grid;
+      gap: 12px;
+      padding-left: 16px;
+      border-left: 1px dashed #cbd5e1;
+    }
+
+    .weekly-title strong {
+      display: block;
+      color: var(--ink);
+      font-size: 28px;
+      line-height: 1.05;
+      font-weight: 950;
+    }
+
+    .weekly-title span {
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 750;
+    }
+
+    .weekly-legend {
+      display: grid;
+      gap: 9px;
+    }
+
+    .weekly-legend-item {
+      display: grid;
+      grid-template-columns: 18px 1fr auto;
+      align-items: center;
+      gap: 8px;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .weekly-swatch {
+      width: 14px;
+      height: 26px;
+      border-radius: 999px;
+      background: var(--swatch-color);
+      box-shadow: inset 0 0 0 1px rgba(31,41,55,.05);
+    }
+
     .bar-chart {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -3444,6 +3523,23 @@
       .timer-time { font-size: 36px; }
       .shop-grid { grid-template-columns: 1fr; }
       .form-row { grid-template-columns: 1fr; }
+      .weekly-heatmap {
+        grid-template-columns: 34px repeat(7, minmax(16px, 1fr));
+        gap: 5px;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .weekly-overview {
+        grid-template-columns: 1fr;
+      }
+
+      .weekly-side {
+        padding-left: 0;
+        padding-top: 14px;
+        border-left: 0;
+        border-top: 1px dashed #cbd5e1;
+      }
     }
 
     @media (min-width: 700px) {
@@ -3841,13 +3937,8 @@
         </div>
 
         <div class="panel">
-          <h2>7 天趋势</h2>
-          <div class="bar-chart" id="weeklyBars"></div>
-        </div>
-
-        <div class="panel">
-          <h2>周报摘要</h2>
-          <div class="history" id="weeklySummary"></div>
+          <h2>一周时间总览</h2>
+          <div class="weekly-overview" id="weeklyOverview"></div>
         </div>
       </section>
     </main>
@@ -3883,7 +3974,11 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    const todayKey = new Date().toISOString().slice(0, 10);
+    function localDateKey(date = new Date()) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    }
+
+    const todayKey = localDateKey();
     const defaultState = {
       coins: 300,
       focusMinutes: 0,
@@ -4706,9 +4801,10 @@
       return Array.from({ length: 7 }, (_, index) => {
         const date = new Date();
         date.setDate(date.getDate() - (6 - index));
-        const key = date.toISOString().slice(0, 10);
+        const key = localDateKey(date);
         return {
           key,
+          date,
           label: date.toLocaleDateString("zh-CN", { weekday: "short" }),
           minutes: 0,
           coins: 0,
@@ -4718,12 +4814,61 @@
       });
     }
 
+    function weekNumber(date) {
+      const target = new Date(date);
+      target.setHours(0, 0, 0, 0);
+      target.setDate(target.getDate() + 3 - ((target.getDay() + 6) % 7));
+      const firstThursday = new Date(target.getFullYear(), 0, 4);
+      firstThursday.setDate(firstThursday.getDate() + 3 - ((firstThursday.getDay() + 6) % 7));
+      return 1 + Math.round((target - firstThursday) / (7 * 24 * 60 * 60 * 1000));
+    }
+
+    function shortDateLabel(date) {
+      return `${date.getMonth() + 1}.${date.getDate()}`;
+    }
+
+    function timeLogRange(log) {
+      const start = timeToMinutes(log.start);
+      let end = timeToMinutes(log.end);
+      if (end <= start) end += 24 * 60;
+      return { start, end };
+    }
+
+    function weeklyCategoryMinutes(days) {
+      return Object.fromEntries(Object.keys(logCategories).map(category => [category, 0]));
+    }
+
     function renderWeeklyReport() {
       const days = lastSevenDays();
       const byDay = Object.fromEntries(days.map(day => [day.key, day]));
+      const categoryTotals = weeklyCategoryMinutes(days);
+      const hours = Array.from({ length: 18 }, (_, index) => index + 6);
+      const cells = Object.fromEntries(days.map(day => [
+        day.key,
+        Object.fromEntries(hours.map(hour => [
+          hour,
+          Object.fromEntries(Object.keys(logCategories).map(category => [category, 0]))
+        ]))
+      ]));
+
+      state.timeLogs.forEach(log => {
+        const day = byDay[log.date];
+        if (!day) return;
+        const category = logCategories[log.category] ? log.category : "daily";
+        const { start, end } = timeLogRange(log);
+        const minutes = Math.max(0, end - start);
+        day.minutes += minutes;
+        categoryTotals[category] += minutes;
+        hours.forEach(hour => {
+          const hourStart = hour * 60;
+          const hourEnd = hourStart + 60;
+          const overlap = Math.max(0, Math.min(end, hourEnd) - Math.max(start, hourStart));
+          if (overlap) cells[day.key][hour][category] += overlap;
+        });
+      });
+
       state.records.forEach(record => {
         if (!byDay[record.date]) return;
-        if (record.kind === "focus" || record.kind === "time-log-reward") byDay[record.date].minutes += record.minutes || 0;
         if ((record.coins || 0) > 0) byDay[record.date].coins += record.coins;
         if (record.kind === "task") byDay[record.date].tasks += 1;
         if (record.kind === "plan") byDay[record.date].plans += record.minutes || 0;
@@ -4737,25 +4882,48 @@
       document.querySelector("#weekMinutes").textContent = weekMinutes;
       document.querySelector("#weekCoins").textContent = weekCoins;
 
-      const maxMinutes = Math.max(1, ...days.map(day => day.minutes));
-      const bars = document.querySelector("#weeklyBars");
-      bars.innerHTML = "";
-      days.forEach(day => {
-        const bar = document.createElement("div");
-        bar.className = "bar";
-        bar.innerHTML = `
-          <div class="bar-fill" style="height:${Math.max(6, day.minutes / maxMinutes * 105)}px"></div>
-          <span>${day.label}</span>
-        `;
-        bars.appendChild(bar);
-      });
-
-      const summary = document.querySelector("#weeklySummary");
-      summary.innerHTML = `
-        <div class="history-item"><span>本周完成任务</span><strong>${weekTasks} 个</strong></div>
-        <div class="history-item"><span>计划实际完成</span><strong>${formatMinutes(weekPlanMinutes)}</strong></div>
-        <div class="history-item"><span>最佳专注日</span><strong>${bestDay.minutes ? `${bestDay.label} ${bestDay.minutes} 分` : "暂无"}</strong></div>
-        <div class="history-item"><span>按 1 金币/分钟，本月理论上限约</span><strong>10000</strong></div>
+      const cellColor = (day, hour) => {
+        const entries = Object.entries(cells[day.key][hour]);
+        const [category, minutes] = entries.sort((a, b) => b[1] - a[1])[0];
+        return minutes ? logCategoryStyle(category).bg : "#f2f4f7";
+      };
+      const overview = document.querySelector("#weeklyOverview");
+      const startDate = days[0].date;
+      const endDate = days[days.length - 1].date;
+      overview.innerHTML = `
+        <div class="weekly-heatmap">
+          <div></div>
+          ${days.map(day => `<div class="weekly-day-label">${day.label.replace("周", "")}</div>`).join("")}
+          ${hours.map(hour => `
+            <div class="weekly-hour-label">${String(hour).padStart(2, "0")}</div>
+            ${days.map(day => `<div class="weekly-cell" title="${day.label} ${String(hour).padStart(2, "0")}:00-${String(hour + 1).padStart(2, "0")}:00" style="--cell-color:${cellColor(day, hour)}"></div>`).join("")}
+          `).join("")}
+        </div>
+        <div class="weekly-side">
+          <div class="weekly-title">
+            <strong>第 ${weekNumber(endDate)} 周</strong>
+            <span>${shortDateLabel(startDate)} - ${shortDateLabel(endDate)}</span>
+          </div>
+          <div class="weekly-legend">
+            ${Object.entries(logCategories).map(([category, meta]) => `
+              <div class="weekly-legend-item">
+                <span class="weekly-swatch" style="--swatch-color:${meta.bg}"></span>
+                <span>${meta.name}</span>
+                <strong>${formatMinutes(categoryTotals[category])}</strong>
+              </div>
+            `).join("")}
+            <div class="weekly-legend-item">
+              <span class="weekly-swatch" style="--swatch-color:#f2f4f7"></span>
+              <span>未记录</span>
+              <strong>-</strong>
+            </div>
+          </div>
+          <div class="history">
+            <div class="history-item"><span>本周完成任务</span><strong>${weekTasks} 个</strong></div>
+            <div class="history-item"><span>计划实际完成</span><strong>${formatMinutes(weekPlanMinutes)}</strong></div>
+            <div class="history-item"><span>最佳专注日</span><strong>${bestDay.minutes ? `${bestDay.label} ${bestDay.minutes} 分` : "暂无"}</strong></div>
+          </div>
+        </div>
       `;
     }
 
@@ -6179,11 +6347,30 @@
       return { minutes, coins: minutes };
     }
 
+    function removeLegacyFocusReward(log) {
+      const index = state.records.findIndex(record =>
+        record.kind === "focus"
+        && record.date === log.date
+        && (record.minutes || 0) === (log.minutes || 0)
+        && (record.coins || 0) === (log.minutes || 0)
+      );
+      if (index < 0) return { minutes: 0, coins: 0 };
+      const record = state.records.splice(index, 1)[0];
+      state.focusMinutes = Math.max(0, state.focusMinutes - (record.minutes || 0));
+      state.coins = Math.max(0, state.coins - (record.coins || 0));
+      const historyIndex = state.history.findIndex(item =>
+        item.amount === record.coins && item.text === record.label
+      );
+      if (historyIndex >= 0) state.history.splice(historyIndex, 1);
+      return { minutes: record.minutes || 0, coins: record.coins || 0 };
+    }
+
     function settleTimeLogReward(log, previousReward = { minutes: 0, coins: 0 }) {
       const oldMinutes = previousReward.minutes || 0;
       const oldCoins = previousReward.coins || 0;
       if (oldMinutes) state.focusMinutes = Math.max(0, state.focusMinutes - oldMinutes);
       if (oldCoins) state.coins = Math.max(0, state.coins - oldCoins);
+      if (!oldMinutes && !oldCoins) removeLegacyFocusReward(log);
       state.records = state.records.filter(record => record.kind !== "time-log-reward" || record.logId !== log.id);
       state.history = state.history.filter(item => item.logId !== log.id);
 
