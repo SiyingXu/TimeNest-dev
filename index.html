@@ -4841,6 +4841,59 @@
       else shopItems.push(item);
     });
 
+    const routeSideQuestTemplates = [
+      {
+        key: "coffee",
+        suffix: "C",
+        label: "喝一杯咖啡",
+        price: 79,
+        icon: "CAF",
+        color: "#fff2e8",
+        border: "rose",
+        desc: city => `支线愿望：完成一段真实学习或计划后，在 ${city.name} 给自己留一杯咖啡。`,
+        cardLine: city => `${city.name}支线：喝一杯咖啡，给这座城市留一点慢下来的时间。`
+      },
+      {
+        key: "library",
+        suffix: "L",
+        label: "图书馆小坐",
+        price: 89,
+        icon: "LIB",
+        color: "#f0f7ff",
+        border: "blue",
+        desc: city => `支线愿望：完成一段真实学习或计划后，在 ${city.name} 的图书馆小坐片刻。`,
+        cardLine: city => `${city.name}支线：在图书馆或安静角落坐一会儿，慢慢收尾。`
+      }
+    ];
+
+    const routeSideQuests = journeyCities
+      .filter(city => city.id !== "tuebingen")
+      .flatMap(city => routeSideQuestTemplates.map(template => ({
+        id: `${city.id}-${template.key}`,
+        category: "wish",
+        name: `${city.name} · ${template.label}`,
+        price: template.price,
+        desc: template.desc(city),
+        icon: template.icon,
+        color: template.color,
+        region: city.name,
+        stamp: journeyStamp(city, template.suffix),
+        rarity: "wish",
+        requires: cityCardId(city.id),
+        cityId: city.id,
+        sideQuest: template.key,
+        border: template.border,
+        art: city.id === "shanghai" ? "shanghai" : "tuebingen",
+        ...journeyCardArt(city),
+        cardLine: template.cardLine(city)
+      })));
+
+    routeSideQuests.forEach(item => {
+      const existing = shopItems.find(reward => reward.id === item.id);
+      if (existing) Object.assign(existing, item);
+      else shopItems.push(item);
+    });
+
     shopItems.forEach(item => {
       const cityId = item.routeCityId || (item.category === "city" ? item.id.replace(/-card$/, "") : null);
       const germanyIndex = cityId ? germanyCityCardOrder.indexOf(cityId) : -1;
@@ -7795,6 +7848,6 @@
     openRouteFromHash();
     updateTimerDisplay();
   </script>
-  <!-- deploy: city progress bar v84 -->
+  <!-- deploy: route side quests v85 -->
 </body>
 </html>
