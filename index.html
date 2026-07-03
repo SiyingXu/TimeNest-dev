@@ -3747,7 +3747,8 @@
         grid-template-columns: minmax(380px, 1fr) minmax(0, 2fr);
         grid-template-rows: auto 1fr;
         gap: 16px;
-        align-items: start;
+        align-items: stretch;
+        min-height: 0;
       }
 
       #home-view .stats {
@@ -3764,17 +3765,66 @@
       #home-view > .panel:nth-of-type(3) {
         grid-column: 2;
         grid-row: 1 / span 2;
+        --home-timeline-height: clamp(410px, calc(100vh - 535px), 660px);
+        display: grid;
+        grid-template-rows: auto auto auto minmax(0, var(--home-timeline-height));
+        align-content: start;
+        min-height: 0;
+        padding: clamp(10px, 1.25vh, 14px);
         margin-bottom: 0;
       }
 
-      .plan-list,
-      .day-timeline {
-        min-height: clamp(700px, calc(100vh - 330px), 1060px);
+      #home-view > .panel:nth-of-type(3) h2 {
+        margin-bottom: 8px;
       }
 
-      .timeline-label,
-      .timeline-line {
-        min-height: clamp(38px, calc((100vh - 330px) / 18), 58px);
+      #home-view > .panel:nth-of-type(3) .schedule-form {
+        gap: 6px;
+        margin-bottom: 0;
+      }
+
+      #home-view > .panel:nth-of-type(3) input {
+        min-height: 34px;
+        padding: 8px 10px;
+      }
+
+      #home-view > .panel:nth-of-type(3) .category-select {
+        gap: 4px;
+        padding: 3px;
+      }
+
+      #home-view > .panel:nth-of-type(3) .category-option {
+        min-height: 30px;
+      }
+
+      #home-view > .panel:nth-of-type(3) .primary,
+      #home-view > .panel:nth-of-type(3) .secondary {
+        min-height: 38px;
+        padding: 8px 10px;
+      }
+
+      #home-view > .panel:nth-of-type(3) .compare-strip {
+        gap: 5px;
+        margin: 7px 0 8px;
+      }
+
+      #home-view > .panel:nth-of-type(3) .compare-row {
+        gap: 7px;
+      }
+
+      #home-view > .panel:nth-of-type(3) .meter {
+        height: 6px;
+      }
+
+      #home-view .plan-list,
+      #home-view .day-timeline {
+        min-height: var(--home-timeline-height);
+        height: var(--home-timeline-height);
+      }
+
+      #home-view .timeline-label,
+      #home-view .timeline-line {
+        min-height: calc(var(--home-timeline-height) / 18);
       }
 
       .plan-title {
