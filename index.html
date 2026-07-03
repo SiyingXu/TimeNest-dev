@@ -2121,36 +2121,6 @@
       line-height: 1.25;
     }
 
-    .journey-city-strip {
-      display: flex;
-      gap: 6px;
-      overflow-x: auto;
-      padding-bottom: 2px;
-    }
-
-    .journey-city {
-      flex: 0 0 auto;
-      border: 1px solid rgba(31,41,55,.12);
-      border-radius: 999px;
-      background: #fff;
-      color: #435064;
-      padding: 6px 8px;
-      font-size: 11px;
-      font-weight: 900;
-    }
-
-    .journey-city.done {
-      color: #17644f;
-      background: #eef7f3;
-      border-color: #b7ded1;
-    }
-
-    .journey-city.current {
-      color: #7a3342;
-      background: #fff1f4;
-      border-color: rgba(227,107,127,.42);
-    }
-
     .route-overview {
       display: grid;
       gap: 10px;
@@ -17522,15 +17492,14 @@
       const progress = Math.round(arrivedCount / journeyCities.length * 100);
       const currentProgress = cityProgress(current.id);
       const chapters = journeyChapters();
-      const nearby = journeyCities.slice(Math.max(0, currentIndex - 3), Math.min(journeyCities.length, currentIndex + 5));
       const activeChapter = chapters.find(chapter => chapter.cities.includes(current));
       const ticket = currentTravelTicket();
       const requiredProgress = requiredCityProgress(current);
       root.innerHTML = `
         <div class="journey-head">
           <div>
-            <strong>环球主线：${current.name}</strong>
-            <span>${current.country} · ${current.chapter} · 已抵达 ${arrivedCount}/${journeyCities.length} 城</span>
+            <strong>环球主线：${activeChapter?.name || current.chapter}</strong>
+            <span>已抵达 ${arrivedCount}/${journeyCities.length} 城</span>
           </div>
           <div class="map-chip">${progress}%</div>
         </div>
@@ -17569,20 +17538,7 @@
             `).join("")}
           </div>
         </div>
-        <div class="journey-city-strip">
-          ${nearby.map(city => `
-            <button class="journey-city${state.travel.arrivedCities.includes(city.id) ? " done" : ""}${city.id === current.id ? " current" : ""}" data-city-id="${city.id}" type="button">
-              ${city.name} ${cityProgress(city.id)}/${requiredCityProgress(city)}
-            </button>
-          `).join("")}
-        </div>
       `;
-      root.querySelectorAll("[data-city-id]").forEach(button => {
-        button.addEventListener("click", () => {
-          const city = journeyCityById(button.dataset.cityId);
-          openJourneyCity(city);
-        });
-      });
       root.querySelectorAll("[data-route-city]").forEach(button => {
         button.addEventListener("click", event => {
           event.stopPropagation();
@@ -19471,6 +19427,6 @@
     openRouteFromHash();
     updateTimerDisplay();
   </script>
-  <!-- deploy: route workbook skeleton v88 -->
+  <!-- deploy: journey summary chapter title v89 -->
 </body>
 </html>
