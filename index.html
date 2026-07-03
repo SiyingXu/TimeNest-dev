@@ -3341,8 +3341,9 @@
 
     .weekly-left {
       display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
       gap: 14px;
-      align-content: start;
+      align-content: stretch;
     }
 
     .weekly-grid {
@@ -3356,6 +3357,7 @@
       gap: 12px;
       height: 100%;
       min-height: 0;
+      align-content: start;
     }
 
     .week-recap-list {
@@ -3789,7 +3791,7 @@
         grid-template-columns: minmax(280px, 330px) minmax(0, 1fr);
         gap: 16px;
         grid-auto-rows: 1fr;
-        align-items: start;
+        align-items: stretch;
       }
 
       #report-view .weekly-left {
