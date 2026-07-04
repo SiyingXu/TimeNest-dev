@@ -1075,6 +1075,42 @@
       opacity: .55;
     }
 
+    .chapter-route-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .chapter-route-line {
+      fill: none;
+      stroke: #cbd5e1;
+      stroke-width: 4;
+      stroke-linecap: round;
+      opacity: .86;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .chapter-route-line.done {
+      stroke: #3da989;
+      filter: drop-shadow(0 0 4px rgba(61,169,137,.18));
+    }
+
+    .chapter-route-line.next {
+      stroke: #e36b7f;
+      stroke-dasharray: 10 8;
+      filter: drop-shadow(0 0 4px rgba(227,107,127,.18));
+    }
+
+    .chapter-route-line.locked {
+      stroke: rgba(148,163,184,.78);
+      stroke-dasharray: 8 7;
+      opacity: .55;
+    }
+
     .chapter-badge {
       position: absolute;
       left: 12px;
@@ -17671,22 +17707,30 @@
           badge.className = "chapter-badge";
           badge.innerHTML = `<strong>${chapter.index + 1}. ${chapter.name}</strong><span>${chapter.done}/${chapter.cities.length} 城已抵达 · ${chapter.completed ? "章节完成" : "当前章节进行中"}</span>`;
           map.appendChild(badge);
+          const routeLayer = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          routeLayer.setAttribute("class", "chapter-route-layer");
+          routeLayer.setAttribute("viewBox", "0 0 100 100");
+          routeLayer.setAttribute("preserveAspectRatio", "none");
           chapter.cities.slice(0, -1).forEach((city, index) => {
             const next = chapter.cities[index + 1];
             const from = chapterCityPosition(chapter, city);
             const to = chapterCityPosition(chapter, next);
-            const segment = document.createElement("div");
             const done = state.travel.arrivedCities.includes(city.id) && state.travel.arrivedCities.includes(next.id);
             const upcoming = city.id === currentCity.id && next.id === nextCity?.id;
-            segment.className = [
-              "chapter-segment",
+            const segment = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            segment.setAttribute("x1", from.x);
+            segment.setAttribute("y1", from.y);
+            segment.setAttribute("x2", to.x);
+            segment.setAttribute("y2", to.y);
+            segment.setAttribute("class", [
+              "chapter-route-line",
               done ? "done" : "",
               upcoming ? "next" : "",
               !done && !upcoming ? "locked" : ""
-            ].filter(Boolean).join(" ");
-            segment.setAttribute("style", chapterSegmentStyle(from, to));
-            map.appendChild(segment);
+            ].filter(Boolean).join(" "));
+            routeLayer.appendChild(segment);
           });
+          map.appendChild(routeLayer);
         }
         const routePins = chapter ? chapter.cities : [previousCity, currentCity, nextCity];
         routePins
@@ -19528,6 +19572,6 @@
     openRouteFromHash();
     updateTimerDisplay();
   </script>
-  <!-- deploy: realign travel map bubbles v96 -->
+  <!-- deploy: render chapter routes with svg v97 -->
 </body>
 </html>
