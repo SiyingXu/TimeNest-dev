@@ -17468,7 +17468,6 @@
 
     function layerTextFor(mode) {
       if (mode === "china") return ["世界", "中国", "上海入口"];
-      if (mode === "germany") return ["世界", "德国", "图宾根入口"];
       if (isCityMapMode(mode)) {
         const city = journeyCityById(cityIdFromMapMode(mode)) || exploringCity();
         return ["世界", city.country || "德国", city.name];
@@ -17479,7 +17478,6 @@
 
     function captionFor(mode) {
       if (mode === "china") return "中国地图：点击上海进入城市地图";
-      if (mode === "germany") return "德国地图：点击图宾根进入城市地图";
       if (isCityMapMode(mode)) {
         const city = journeyCityById(cityIdFromMapMode(mode)) || exploringCity();
         return `${city.name}地图：${city.visits.join(" / ")}`;
@@ -18510,14 +18508,11 @@
         selectReward("pig-passport");
       } else if (mode === "china") {
         mapMode = "china";
-        selectReward("shanghai-card");
-      } else if (mode === "germany" && state.travel.currentCityId === "tuebingen") {
-        mapMode = "tuebingen-city";
+        selectReward("shanghai-card", { stayOnMap: true });
+      } else if (mode === "germany") {
+        mapMode = "world";
         renderTravelMap();
         renderShop();
-      } else if (mode === "germany") {
-        mapMode = "germany";
-        selectReward("tuebingen-card");
       } else if (mode === "shanghai-city") {
         mapMode = "shanghai-city";
         renderTravelMap();
@@ -18539,8 +18534,14 @@
       selectedRewardId = id;
       if (item) {
         activeCategory = item.category;
-        if (isMapMode(item.mapScope) && !options.stayOnMap) mapMode = item.mapScope;
-        if (item.mapScope === "world" && !options.stayOnMap) mapMode = "world";
+        if (!options.stayOnMap) {
+          const rewardCityId = item.routeCityId || item.cityId || cityIdFromMapMode(item.zoomTo);
+          if (item.zoomTo && isMapMode(item.zoomTo)) mapMode = item.zoomTo;
+          else if (item.mapScope === "germany" && rewardCityId) mapMode = cityVisualMapMode(rewardCityId);
+          else if (item.mapScope === "germany") mapMode = "world";
+          else if (isMapMode(item.mapScope)) mapMode = item.mapScope;
+          else if (item.mapScope === "world") mapMode = "world";
+        }
       }
       renderTravelMap();
       renderShop();
@@ -19572,6 +19573,6 @@
     openRouteFromHash();
     updateTimerDisplay();
   </script>
-  <!-- deploy: render chapter routes with svg v97 -->
+  <!-- deploy: remove legacy germany map layer v98 -->
 </body>
 </html>
