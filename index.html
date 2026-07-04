@@ -819,6 +819,28 @@
       font-weight: 850;
     }
 
+    .test-tools {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+    }
+
+    .test-tools.active {
+      display: flex;
+    }
+
+    .test-tools button {
+      min-height: 32px;
+      border-radius: 999px;
+      border: 1px dashed rgba(190,24,93,.36);
+      background: #fff7fb;
+      color: #9f1239;
+      padding: 0 10px;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
     .map-trail {
       position: absolute;
       left: 10px;
@@ -4286,6 +4308,10 @@
               <p>沿固定路线探索城市，完成本城游览章后购买交通票前往下一站。</p>
             </div>
             <div class="map-chip" id="travelBudget">0 金币</div>
+            <div class="test-tools" id="testTools" aria-label="测试工具">
+              <button type="button" id="testResetState">重启测试</button>
+              <button type="button" id="testInfiniteCoins">无穷金币</button>
+            </div>
           </div>
           <div class="world-map" id="worldMap" aria-label="可点击旅行地图"></div>
           <div class="journey-panel" id="journeyPanel"></div>
@@ -4360,7 +4386,7 @@
                 <span class="week-recap-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/></svg>
                 </span>
-                <span class="week-recap-label">计划实际完成</span>
+                <span class="week-recap-label">本周专注时间</span>
                 <strong class="week-recap-value" id="weeklyPlanMinutes">0 分</strong>
               </div>
               <div class="week-recap-row" style="--summary-color:#15803d;--summary-bg:#f0fdf4">
@@ -4413,6 +4439,7 @@
     }
 
     const todayKey = localDateKey();
+    const ENABLE_TEST_TOOLS = true;
     const defaultState = {
       coins: 300,
       focusMinutes: 0,
@@ -4449,9 +4476,7 @@
       { id: "tuebingen-card", category: "city", name: "图宾根城市卡", price: 0, desc: "Base 城市，记录第一段稳定作息。", icon: "TÜ", color: "#eff7f4", region: "德国", mapScope: "germany", zoomTo: "tuebingen-city", stamp: "TUE", x: 42, y: 57, rarity: "base", border: "green", art: "tuebingen", cardAsset: "assets/visual/generated/card-tuebingen-handdrawn.png", cardLine: "内卡河、老城、大学城日常。" },
       { id: "shanghai-card", category: "city", name: "上海城市卡", price: 699, desc: "从世界地图点击中国后出现上海，收藏一张真正想去的城市卡。", icon: "SHA", color: "#eef2ff", region: "中国", mapScope: "china", zoomTo: "shanghai-city", stamp: "SHA", x: 73, y: 55, rarity: "rare", border: "blue", art: "shanghai", cardAsset: "assets/visual/generated/card-shanghai-handdrawn.png", cardLine: "外滩夜景、武康路、咖啡和展览。" },
       { id: "stuttgart-card", category: "city", name: "斯图加特城市卡", price: 249, desc: "从图宾根出发的周末大城徽章。", icon: "STR", color: "#f1fff9", region: "德国", mapScope: "germany", stamp: "STR", x: 60, y: 48, rarity: "common", requires: "tuebingen-card", border: "green", art: "tuebingen", cardAsset: "assets/visual/generated/card-tuebingen-handdrawn.png", cardLine: "短途火车、博物馆和周末市区。" },
-      { id: "regional-ticket", category: "ticket", name: "BW 区域火车票", price: 189, desc: "真实价格感的短途车票，像一次认真计划好的出行。", icon: "RE", color: "#fff7e8", region: "德国", mapScope: "tuebingen-city", stamp: "RAIL", x: 18, y: 30, rarity: "common", requires: "tuebingen-card", border: "gold", art: "tuebingen", cardAsset: "assets/visual/generated/card-tuebingen-handdrawn.png", cardLine: "适合把普通周末变成小旅行。" },
       { id: "shanghai-flight", category: "ticket", name: "上海机票基金", price: 1299, desc: "大额愿望前的分段存钱目标，先把目的地钉在地图上。", icon: "PVG", color: "#eaf4ff", region: "中国", mapScope: "shanghai-city", stamp: "PVG", x: 18, y: 16, rarity: "epic", requires: "shanghai-card", installment: true, border: "blue", art: "shanghai", cardAsset: "assets/visual/generated/card-shanghai-handdrawn.png", cardLine: "不是立刻出发，但每次专注都在靠近。" },
-      { id: "neckar-punt", category: "sight", name: "内卡河小船体验", price: 129, desc: "完成几个小任务就能买下的轻旅行时刻。", icon: "BOAT", color: "#e9fbf8", region: "图宾根", mapScope: "tuebingen-city", stamp: "NECKAR", x: 56, y: 70, rarity: "common", requires: "tuebingen-card", border: "green", art: "tuebingen", cardAsset: "assets/visual/generated/card-tuebingen-handdrawn.png", cardLine: "给小猪护照盖一枚河边章。" },
       { id: "bund-walk", category: "sight", name: "外滩散步徽章", price: 219, desc: "上海卡册里的第一个景点章。", icon: "BUND", color: "#f0f7ff", region: "上海", mapScope: "shanghai-city", stamp: "BUND", x: 63, y: 52, rarity: "rare", requires: "shanghai-card", border: "blue", art: "shanghai", cardAsset: "assets/visual/generated/card-shanghai-handdrawn.png", cardLine: "适合兑换给一个完整收尾的项目周。" },
       { id: "wukang-coffee", category: "wish", name: "武康路咖啡愿望", price: 119, desc: "上海城市层里的小愿望，适合奖励一个完成得很漂亮的下午。", icon: "CAF", color: "#fff2e8", region: "上海", mapScope: "shanghai-city", stamp: "WUKANG", x: 22, y: 76, rarity: "wish", requires: "shanghai-card", border: "rose", art: "shanghai", cardAsset: "assets/visual/generated/card-shanghai-handdrawn.png", cardLine: "不是大额消费，是给自己留一小段街角时间。" },
       { id: "pig-passport", category: "wish", name: "小猪旅行护照", price: 99, desc: "让同行小猪拥有自己的盖章页。", icon: "PIG", color: "#ffeef4", region: "随身", mapScope: "world", stamp: "PIG", x: 58, y: 68, rarity: "wish", border: "rose", art: "pig", cardAsset: "assets/visual/card-pig-passport.svg", cardLine: "保留这个设定：每次兑换都会更像一段旅程。" },
@@ -16200,11 +16225,9 @@
 
     const tuebingenRewardSpriteIndex = {
       "tuebingen-card": 0,
-      "neckar-punt": 1,
       "tuebingen-visit-1": 1,
       "tuebingen-visit-2": 2,
       "tuebingen-visit-3": 3,
-      "regional-ticket": 4,
       "coffee-wish": 5,
       "museum-day": 6,
       "pig-passport": 7
@@ -16317,8 +16340,6 @@
       else shopItems.push(item);
     });
 
-    Object.assign(shopItems.find(item => item.id === "regional-ticket") || {}, { cityId: "tuebingen" });
-    Object.assign(shopItems.find(item => item.id === "neckar-punt") || {}, { cityId: "tuebingen" });
     Object.assign(shopItems.find(item => item.id === "shanghai-flight") || {}, { cityId: "shanghai" });
     Object.assign(shopItems.find(item => item.id === "bund-walk") || {}, { cityId: "shanghai" });
     Object.assign(shopItems.find(item => item.id === "wukang-coffee") || {}, { cityId: "shanghai" });
@@ -16543,7 +16564,9 @@
         parsed.date = todayKey;
         parsed.todayDone = 0;
         parsed.focusMinutes = 0;
-        parsed.tasks = parsed.tasks.map(task => ({ ...task, done: false }));
+        parsed.tasks = parsed.tasks
+          .filter(task => !task.done)
+          .map(task => ({ ...task, done: false }));
         parsed.plans = [];
         parsed.timeLogs = [];
       }
@@ -16552,6 +16575,43 @@
 
     function saveState() {
       localStorage.setItem("TimeNestState", JSON.stringify(state));
+    }
+
+    function freshTestState() {
+      const nextState = structuredClone(defaultState);
+      nextState.coins = 0;
+      nextState.ownedRewards = [];
+      nextState.travel = { currentCityId: "tuebingen", arrivedCities: ["tuebingen"], tickets: [] };
+      nextState.history = [];
+      nextState.records = [];
+      nextState.tasks = [];
+      nextState.plans = [];
+      nextState.timeLogs = [];
+      return nextState;
+    }
+
+    function resetForTesting() {
+      if (!ENABLE_TEST_TOOLS) return;
+      if (!window.confirm("确认重启测试进度，回到购买小猪护照之前吗？")) return;
+      state = freshTestState();
+      selectedRewardId = "pig-passport";
+      activeCategory = "wish";
+      activeRewardSection = "city";
+      mapMode = "world";
+      exploringCityId = "tuebingen";
+      saveState();
+      render();
+      showToast("已重启到测试初始状态。");
+    }
+
+    function grantTestingCoins() {
+      if (!ENABLE_TEST_TOOLS) return;
+      state.coins = 999999;
+      state.history.unshift({ text: "测试金币", amount: 999999, date: todayKey, time: "测试" });
+      state.history = state.history.slice(0, 8);
+      saveState();
+      render();
+      showToast("测试金币已开启。");
     }
 
     function addCoins(amount, label, record = {}) {
@@ -16598,6 +16658,15 @@
       renderShop();
       renderTravelMap();
       renderPet();
+      renderTestTools();
+    }
+
+    function renderTestTools() {
+      const root = document.querySelector("#testTools");
+      if (!root) return;
+      root.classList.toggle("active", ENABLE_TEST_TOOLS);
+      root.querySelector("#testResetState").onclick = resetForTesting;
+      root.querySelector("#testInfiniteCoins").onclick = grantTestingCoins;
     }
 
     function renderRewardSections() {
@@ -17000,6 +17069,13 @@
       return Object.fromEntries(Object.keys(logCategories).map(category => [category, 0]));
     }
 
+    function categoryFromFocusRecord(record) {
+      if (logCategories[record.category]) return record.category;
+      if (String(record.label || "").startsWith("学习记录")) return "study";
+      if (String(record.label || "").startsWith("工作记录")) return "work";
+      return "daily";
+    }
+
     function renderWeeklyReport() {
       const days = currentCalendarWeekDays();
       const byDay = Object.fromEntries(days.map(day => [day.key, day]));
@@ -17013,9 +17089,11 @@
         ]))
       ]));
 
+      const visibleTimeLogIds = new Set();
       state.timeLogs.forEach(log => {
         const day = byDay[log.date];
         if (!day) return;
+        visibleTimeLogIds.add(log.id);
         const category = logCategories[log.category] ? log.category : "daily";
         const { start, end } = timeLogRange(log);
         const minutes = Math.max(0, end - start);
@@ -17034,17 +17112,23 @@
         if ((record.coins || 0) > 0) byDay[record.date].coins += record.coins;
         if (record.kind === "task") byDay[record.date].tasks += 1;
         if (record.kind === "plan") byDay[record.date].plans += record.minutes || 0;
+        if (record.kind === "time-log-reward" && !visibleTimeLogIds.has(record.logId)) {
+          const category = categoryFromFocusRecord(record);
+          const minutes = record.minutes || 0;
+          byDay[record.date].minutes += minutes;
+          categoryTotals[category] += minutes;
+        }
       });
 
       const weekMinutes = days.reduce((sum, day) => sum + day.minutes, 0);
       const weekCoins = days.reduce((sum, day) => sum + day.coins, 0);
       const weekTasks = days.reduce((sum, day) => sum + day.tasks, 0);
-      const weekPlanMinutes = days.reduce((sum, day) => sum + day.plans, 0);
+      const weekFocusStudyWorkMinutes = (categoryTotals.study || 0) + (categoryTotals.work || 0);
       const bestDay = [...days].sort((a, b) => b.minutes - a.minutes)[0];
       document.querySelector("#weekMinutes").textContent = weekMinutes;
       document.querySelector("#weekCoins").textContent = weekCoins;
       document.querySelector("#weeklyTasks").textContent = `${weekTasks} 个`;
-      document.querySelector("#weeklyPlanMinutes").textContent = formatMinutes(weekPlanMinutes);
+      document.querySelector("#weeklyPlanMinutes").textContent = formatMinutes(weekFocusStudyWorkMinutes);
       document.querySelector("#weeklyBestDay").textContent = bestDay.minutes
         ? `${bestDay.label} ${formatMinutes(bestDay.minutes)}`
         : "-";
@@ -17239,12 +17323,22 @@
 
     function travelTicketFor(from, to) {
       if (!from || !to) return null;
+      const type = travelTicketType(from, to);
+      const price = travelTicketPrice(from, to);
       return {
         id: travelTicketId(from.id, to.id),
+        category: "ticket",
+        name: `${from.name} → ${to.name}`,
         from,
         to,
-        type: travelTicketType(from, to),
-        price: travelTicketPrice(from, to)
+        type,
+        price,
+        icon: type.includes("机票") ? "AIR" : "RAIL",
+        stamp: type.includes("机票") ? "AIR" : "RAIL",
+        region: from.country === to.country ? from.country : `${from.country} → ${to.country}`,
+        cityId: from.id,
+        desc: `${type}：从 ${from.name} 前往 ${to.name}。`,
+        cardLine: `买好${type}，和小猪一起前往 ${to.name}。`
       };
     }
 
@@ -17989,7 +18083,7 @@
       const cityCard = journeyCityCard(city.id);
       const visitOrder = item => Number(item.id.match(/-visit-(\d+)$/)?.[1] || 99);
       const visits = shopItems
-        .filter(item => item.cityId === city.id && item.category !== "city" && !item.sideQuest)
+        .filter(item => item.cityId === city.id && item.category === "sight" && !item.sideQuest)
         .sort((a, b) => visitOrder(a) - visitOrder(b) || a.name.localeCompare(b.name, "zh-CN"));
       const sideQuests = shopItems
         .filter(item => item.cityId === city.id && item.sideQuest)
@@ -18030,8 +18124,7 @@
           "tuebingen-visit-3": { x: 67, y: 28 },
           "tuebingen-coffee": { x: 26, y: 82 },
           "tuebingen-library": { x: 36, y: 20 },
-          "neckar-punt": { x: 57, y: 72 },
-          "regional-ticket": { x: 18, y: 30 }
+          "ticket-tuebingen-to-freiburg": { x: 18, y: 30 }
         },
         freiburg: {
           [cityCard?.id || "freiburg-card"]: { x: 48, y: 54 },
@@ -18882,6 +18975,7 @@
           label,
           coins: reward.coins,
           minutes: reward.minutes,
+          category: log.category,
           date: todayKey,
           ts: Date.now()
         });
@@ -19382,6 +19476,6 @@
     openRouteFromHash();
     updateTimerDisplay();
   </script>
-  <!-- deploy: stabilize wide map layout v92 -->
+  <!-- deploy: cleanup legacy tuebingen items and test tools v93 -->
 </body>
 </html>
