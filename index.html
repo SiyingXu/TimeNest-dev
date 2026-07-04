@@ -4311,7 +4311,6 @@
               <h2>旅行</h2>
               <p>沿固定路线探索城市，完成本城游览章后购买交通票前往下一站。</p>
             </div>
-            <div class="map-chip" id="travelBudget">0 金币</div>
             <div class="test-tools" id="testTools" aria-label="测试工具">
               <button type="button" id="testResetState">重启测试</button>
               <button type="button" id="testInfiniteCoins">无穷金币</button>
@@ -17614,7 +17613,6 @@
     }
 
     function renderTravelMap() {
-      document.querySelector("#travelBudget").textContent = `${state.coins} 金币`;
       const cityCount = document.querySelector("#cityCount");
       const ticketCount = document.querySelector("#ticketCount");
       const wishCount = document.querySelector("#wishCount");
@@ -19480,6 +19478,6 @@
     openRouteFromHash();
     updateTimerDisplay();
   </script>
-  <!-- deploy: align map pin aspect ratios v94 -->
+  <!-- deploy: remove travel page duplicate coin badge v95 -->
 </body>
 </html>
