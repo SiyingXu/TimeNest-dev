@@ -1608,8 +1608,9 @@
       box-shadow: none;
     }
 
-    .passport-purchase-buy {
-      width: 100%;
+    .passport-purchase-card .passport-purchase-buy {
+      width: min(100%, 560px, calc(var(--travel-panel-height, 620px) - 112px));
+      justify-self: center;
       min-height: 68px;
       border-radius: 8px;
       font-size: 17px;
@@ -19590,6 +19591,6 @@
     openRouteFromHash();
     updateTimerDisplay();
   </script>
-  <!-- deploy: trim passport purchase art v101 -->
+  <!-- deploy: align passport purchase button v102 -->
 </body>
 </html>
