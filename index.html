@@ -18717,7 +18717,7 @@
           </div>
           <div class="chapter-map-frame${chapter.unlocked ? "" : " locked"}">
             <img src="${mapAsset}" alt="${chapter.index + 1}. ${chapter.name}章节地图">
-            <span class="chapter-map-state">${chapter.unlocked ? "彩色地图" : "未解锁 · 灰色预览"}</span>
+            ${chapter.unlocked ? "" : `<span class="chapter-map-state">未解锁</span>`}
           </div>
         </div>
       `;
@@ -19584,6 +19584,6 @@
     openRouteFromHash();
     updateTimerDisplay();
   </script>
-  <!-- deploy: chapter map preview v111 -->
+  <!-- deploy: simplify chapter map status v112 -->
 </body>
 </html>
