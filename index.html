@@ -3493,8 +3493,10 @@
 
     .stamp-album.sight-card-album {
       grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-auto-rows: max-content;
       gap: 12px;
       align-content: start;
+      align-items: start;
     }
 
     .sight-album-card {
@@ -3504,6 +3506,7 @@
       background: rgba(255,255,255,.78);
       padding: 8px;
       display: grid;
+      grid-template-rows: auto minmax(30px, auto);
       gap: 7px;
       color: var(--stamp-color, #1f2937);
       box-shadow:
@@ -3511,6 +3514,7 @@
         0 8px 18px rgba(122,74,0,.07);
       overflow: hidden;
       position: relative;
+      align-self: start;
     }
 
     .sight-album-card.owned-stamp {
@@ -3537,6 +3541,7 @@
     .sight-album-art {
       width: 100%;
       aspect-ratio: 1 / 1;
+      min-height: 150px;
       border-radius: 9px;
       border: 1px solid rgba(31,41,55,.12);
       background:
@@ -19567,6 +19572,6 @@
     openRouteFromHash();
     updateTimerDisplay();
   </script>
-  <!-- deploy: unify pet passport cards v113 -->
+  <!-- deploy: keep pet album cards full size v114 -->
 </body>
 </html>
