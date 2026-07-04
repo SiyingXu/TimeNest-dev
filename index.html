@@ -17670,6 +17670,7 @@
         `;
         document.querySelector("#journeyPanel").innerHTML = "";
         renderPassportPurchaseCard(passportItem);
+        requestAnimationFrame(syncTravelPanelHeight);
         return;
       }
       renderJourneyPanel();
@@ -17762,6 +17763,7 @@
           : "环球路线收官";
         map.appendChild(caption);
         renderCurrentRouteCard();
+        requestAnimationFrame(syncTravelPanelHeight);
         return;
       }
 
@@ -17805,6 +17807,15 @@
 
       if (mapMode.includes("-city")) renderCurrentCityCard(exploringCityId);
       else renderSelectedCard();
+      requestAnimationFrame(syncTravelPanelHeight);
+    }
+
+    function syncTravelPanelHeight() {
+      const rewardsView = document.querySelector("#rewards-view");
+      const map = document.querySelector("#worldMap");
+      if (!rewardsView || !map) return;
+      const height = Math.round(map.getBoundingClientRect().height);
+      if (height > 0) rewardsView.style.setProperty("--travel-panel-height", `${height}px`);
     }
 
     function passportCityId(item) {
@@ -19538,6 +19549,7 @@
           activeStampPage = -1;
           renderPet();
         }
+        if (tab.dataset.view === "rewards-view") requestAnimationFrame(syncTravelPanelHeight);
         const route = tab.dataset.view.replace("-view", "");
         if (location.hash !== `#${route}`) history.replaceState(null, "", `#${route}`);
       });
@@ -19558,6 +19570,7 @@
     }
 
     window.addEventListener("hashchange", openRouteFromHash);
+    window.addEventListener("resize", () => requestAnimationFrame(syncTravelPanelHeight));
 
     setInterval(renderPlans, 60 * 1000);
 
@@ -19572,6 +19585,6 @@
     openRouteFromHash();
     updateTimerDisplay();
   </script>
-  <!-- deploy: fix passport purchase image ratio v99 -->
+  <!-- deploy: align passport purchase panel v100 -->
 </body>
 </html>
