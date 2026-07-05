@@ -4359,8 +4359,104 @@
         border-top: 1px dashed #cbd5e1;
       }
 
-      .photo-table {
-        min-width: 680px;
+      #photo-view .photo-table-wrap {
+        overflow-x: visible;
+        border: 0;
+        background: transparent;
+      }
+
+      #photo-view .photo-table {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+        table-layout: auto;
+        font-size: 12px;
+      }
+
+      #photo-view .photo-table colgroup,
+      #photo-view .photo-table thead {
+        display: none;
+      }
+
+      #photo-view .photo-table tbody {
+        display: grid;
+        gap: 10px;
+      }
+
+      #photo-view .photo-table tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        overflow: hidden;
+        box-shadow: 0 8px 18px rgba(31, 41, 55, 0.05);
+      }
+
+      #photo-view .photo-table th,
+      #photo-view .photo-table td {
+        border: 0;
+      }
+
+      #photo-view .photo-table td {
+        min-width: 0;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        gap: 6px;
+        padding: 9px 10px;
+        text-align: left;
+        border-bottom: 1px solid #eef1f5;
+      }
+
+      #photo-view .photo-table td::before {
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 950;
+        white-space: nowrap;
+      }
+
+      #photo-view .photo-table td:nth-child(1)::before { content: "月份"; }
+      #photo-view .photo-table td:nth-child(2)::before { content: "国家"; }
+      #photo-view .photo-table td:nth-child(3)::before { content: "城市"; }
+      #photo-view .photo-table td:nth-child(4)::before { content: "备注"; }
+      #photo-view .photo-table td:nth-child(5)::before { content: "照片"; }
+      #photo-view .photo-table td:nth-child(6)::before { content: "视频"; }
+      #photo-view .photo-table td:nth-child(7)::before { content: "手账"; }
+
+      #photo-view .photo-table td.photo-note,
+      #photo-view .photo-table td.photo-actions {
+        grid-column: 1 / -1;
+      }
+
+      #photo-view .photo-table td.photo-note {
+        align-items: start;
+      }
+
+      #photo-view .photo-table td.photo-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        border-bottom: 0;
+        background: #fffdf8;
+      }
+
+      #photo-view .photo-table td.photo-actions::before {
+        content: "操作";
+        margin-right: auto;
+        align-self: center;
+      }
+
+      #photo-view .photo-table .icon-button {
+        width: 34px;
+        height: 34px;
+        min-height: 34px;
+      }
+
+      #photo-view .photo-check {
+        justify-self: end;
       }
 
       .photo-status-select {
@@ -18264,9 +18360,11 @@
         attachPhotoDragHandlers(row, record.id);
         tbody.appendChild(row);
       });
-      mergePhotoTableColumn(tbody, ".photo-month", record => record.month || "-");
-      mergePhotoTableColumn(tbody, ".photo-country", record => `${record.month || "-"}|${record.country || "-"}`);
-      mergePhotoTableColumn(tbody, ".photo-city", record => `${record.month || "-"}|${record.country || "-"}|${record.city || "未命名地点"}`);
+      if (!window.matchMedia("(max-width: 620px)").matches) {
+        mergePhotoTableColumn(tbody, ".photo-month", record => record.month || "-");
+        mergePhotoTableColumn(tbody, ".photo-country", record => `${record.month || "-"}|${record.country || "-"}`);
+        mergePhotoTableColumn(tbody, ".photo-city", record => `${record.month || "-"}|${record.country || "-"}|${record.city || "未命名地点"}`);
+      }
       root.appendChild(table);
       syncPhotoPanelHeights();
     }
