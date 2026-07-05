@@ -138,6 +138,7 @@ Login behavior:
 - Subsequent saves write local state first, then queue cloud sync.
 - If offline, the local app remains usable and sync resumes when online.
 - If registration shows a `404` for `profiles` or `user_state`, run `supabase-schema.sql` in Supabase SQL Editor and wait a moment for the REST schema cache to refresh.
+- Registration can succeed even if the first cloud profile/state save is queued; the app keeps the user logged in and retries sync later.
 
 ## Ongoing Flow
 

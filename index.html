@@ -17483,10 +17483,9 @@
         password
       });
       persistSyncSession({ ...data, username: normalized });
-      await syncState.pullRemoteState();
-      await syncState.pushLocalState();
+      const synced = await syncState.syncAfterAuth();
       render();
-      return data;
+      return { ...data, synced };
     }
 
     async function registerWithUsername(username, password) {
@@ -17507,9 +17506,9 @@
         console.warn(error);
         syncState.setStatus("offline");
       });
-      await syncState.pushLocalState();
+      const synced = await syncState.syncAfterAuth({ pullFirst: false });
       render();
-      return data;
+      return { ...data, synced };
     }
 
     const syncState = {
@@ -17530,6 +17529,18 @@
       setStatus(status) {
         this.status = status;
         renderSyncStatus();
+      },
+      async syncAfterAuth(options = {}) {
+        const pullFirst = options.pullFirst !== false;
+        try {
+          if (pullFirst) await this.pullRemoteState();
+          await this.pushLocalState();
+          return true;
+        } catch (error) {
+          console.warn(error);
+          this.setStatus("offline");
+          return false;
+        }
       },
       async upsertProfile(username = syncConfig.username) {
         if (!this.configured() || !username) return false;
@@ -17911,9 +17922,9 @@
         const password = modal.querySelector("#authPassword").value;
         setAuthNote("正在登录并同步...");
         try {
-          await signInWithUsername(username, password);
+          const result = await signInWithUsername(username, password);
           closeAuthModal();
-          showToast("已登录并同步进度。");
+          showToast(syncState.status === "synced" || result?.synced ? "已登录并同步进度。" : "已登录，云同步会稍后重试。");
         } catch (error) {
           setAuthNote(error.message || "登录失败。");
         }
@@ -17923,9 +17934,9 @@
         const password = modal.querySelector("#authPassword").value;
         setAuthNote("正在注册并同步...");
         try {
-          await registerWithUsername(username, password);
+          const result = await registerWithUsername(username, password);
           closeAuthModal();
-          showToast("账号已创建，当前进度已同步。");
+          showToast(result?.synced ? "账号已创建，当前进度已同步。" : "账号已创建并登录，云同步会稍后重试。");
         } catch (error) {
           setAuthNote(error.message || "注册失败。");
         }
