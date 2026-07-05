@@ -3942,6 +3942,13 @@
       grid-column: 1 / -1;
     }
 
+    .photo-status-select {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      grid-column: 1 / -1;
+    }
+
     .photo-table-wrap {
       width: 100%;
       overflow-x: auto;
@@ -3986,14 +3993,14 @@
     }
 
     .photo-check {
-      width: 20px;
-      height: 20px;
+      width: 24px;
+      height: 24px;
       display: inline-grid;
       place-items: center;
-      border: 2px solid #1d4ed8;
+      border: 1px solid #f1b6c5;
       border-radius: 4px;
-      background: #fffaf0;
-      color: #050505;
+      background: #fde9ee;
+      color: #fff;
       font-size: 15px;
       line-height: 1;
       font-weight: 950;
@@ -4005,29 +4012,8 @@
       color: #fff;
     }
 
-    .photo-check[data-status="none"] {
-      border-color: #94a3b8;
-      background: #e2e8f0;
-      color: #64748b;
-    }
-
-    .photo-none-button {
-      width: 20px;
-      height: 20px;
-      margin-left: 4px;
-      border: 1px solid #cbd5e1;
-      border-radius: 4px;
-      background: #f8fafc;
-      color: #64748b;
-      font-size: 13px;
-      font-weight: 950;
-      line-height: 1;
-    }
-
-    .photo-none-button.active {
-      background: #1f2937;
-      border-color: #1f2937;
-      color: #fff;
+    .photo-empty-status {
+      background: #fff;
     }
 
     .photo-table .icon-button {
@@ -4158,6 +4144,10 @@
 
       .photo-table {
         min-width: 680px;
+      }
+
+      .photo-status-select {
+        grid-template-columns: 1fr;
       }
     }
 
@@ -4747,6 +4737,23 @@
               <input data-field="country" type="text" maxlength="40" placeholder="国家 / 地区">
               <input data-field="city" type="text" maxlength="60" placeholder="城市 / 地点">
               <input data-field="note" type="text" maxlength="80" placeholder="备注，例如：第 1 天 / 夜景 / 待补">
+              <div class="photo-status-select">
+                <select data-field="photoStatus" aria-label="照片状态">
+                  <option value="todo">照片：未整理</option>
+                  <option value="done">照片：已完成</option>
+                  <option value="none">照片：不需要</option>
+                </select>
+                <select data-field="videoStatus" aria-label="视频状态">
+                  <option value="todo">视频：未整理</option>
+                  <option value="done">视频：已完成</option>
+                  <option value="none">视频：不需要</option>
+                </select>
+                <select data-field="journalStatus" aria-label="手账状态">
+                  <option value="todo">手账：未整理</option>
+                  <option value="done">手账：已完成</option>
+                  <option value="none">手账：不需要</option>
+                </select>
+              </div>
               <div class="photo-form-actions">
                 <button class="primary" id="savePhotoRecord" type="button">新增地点</button>
                 <button class="secondary" id="cancelPhotoEdit" type="button" hidden>取消</button>
@@ -17036,9 +17043,9 @@
     let activePhotoYear = String(new Date().getFullYear());
 
     const photoStatusMeta = {
-      todo: { label: "□", text: "未完成" },
+      todo: { label: "", text: "未完成" },
       done: { label: "✓", text: "已完成" },
-      none: { label: "—", text: "不需要" }
+      none: { label: "", text: "不需要" }
     };
 
     let state = loadState();
@@ -17301,6 +17308,9 @@
       form.querySelector('[data-field="country"]').value = values.country;
       form.querySelector('[data-field="city"]').value = values.city;
       form.querySelector('[data-field="note"]').value = values.note;
+      form.querySelector('[data-field="photoStatus"]').value = normalizePhotoStatus(values.photoStatus);
+      form.querySelector('[data-field="videoStatus"]').value = normalizePhotoStatus(values.videoStatus);
+      form.querySelector('[data-field="journalStatus"]').value = normalizePhotoStatus(values.journalStatus);
       document.querySelector("#savePhotoRecord").textContent = record ? "保存修改" : "新增地点";
       document.querySelector("#cancelPhotoEdit").hidden = !record;
     }
@@ -17316,9 +17326,9 @@
         country: form.querySelector('[data-field="country"]').value,
         city: form.querySelector('[data-field="city"]').value,
         note: form.querySelector('[data-field="note"]').value,
-        photoStatus: current?.photoStatus || "todo",
-        videoStatus: current?.videoStatus || "todo",
-        journalStatus: current?.journalStatus || "todo",
+        photoStatus: form.querySelector('[data-field="photoStatus"]').value,
+        videoStatus: form.querySelector('[data-field="videoStatus"]').value,
+        journalStatus: form.querySelector('[data-field="journalStatus"]').value,
         createdAt: current?.createdAt || now,
         updatedAt: now
       });
@@ -17430,6 +17440,11 @@
           "journalStatus"
         ].forEach(field => {
           const cell = row.querySelector(`[data-status-cell="${field}"]`);
+          if (record[field] === "none") {
+            cell.classList.add("photo-empty-status");
+            cell.title = photoStatusMeta.none.text;
+            return;
+          }
           const check = document.createElement("button");
           check.className = "photo-check";
           check.type = "button";
@@ -17438,13 +17453,6 @@
           check.textContent = photoStatusMeta[record[field]].label;
           check.addEventListener("click", () => togglePhotoDone(record.id, field));
           cell.appendChild(check);
-          const notNeeded = document.createElement("button");
-          notNeeded.className = `photo-none-button${record[field] === "none" ? " active" : ""}`;
-          notNeeded.type = "button";
-          notNeeded.title = record[field] === "none" ? "取消不需要" : "标记为不需要";
-          notNeeded.textContent = "—";
-          notNeeded.addEventListener("click", () => togglePhotoNone(record.id, field));
-          cell.appendChild(notNeeded);
         });
         row.querySelector('[data-action="edit"]').addEventListener("click", () => editPhotoRecord(record.id));
         row.querySelector('[data-action="delete"]').addEventListener("click", () => deletePhotoRecord(record.id));
@@ -17537,21 +17545,7 @@
       }
       if (record[field] === "done") {
         if (window.confirm("是否恢复为未完成状态？")) setPhotoStatus(id, field, "todo");
-        return;
       }
-      if (record[field] === "none") {
-        if (window.confirm("这个项目之前标记为不需要，是否恢复为未完成？")) setPhotoStatus(id, field, "todo");
-      }
-    }
-
-    function togglePhotoNone(id, field) {
-      const record = state.photoArchive.find(item => item.id === id);
-      if (!record) return;
-      if (record[field] === "none") {
-        setPhotoStatus(id, field, "todo");
-        return;
-      }
-      if (window.confirm("确认标记为不需要吗？")) setPhotoStatus(id, field, "none");
     }
 
     function renderRewardSections() {
@@ -20486,6 +20480,6 @@
     openRouteFromHash();
     updateTimerDisplay();
   </script>
-  <!-- deploy: refine photo archive yearly table v131 -->
+  <!-- deploy: refine photo status controls v132 -->
 </body>
 </html>
