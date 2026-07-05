@@ -3931,15 +3931,8 @@
     }
 
     .photo-filters input,
-    .photo-form input[data-field="place"],
+    .photo-form input[data-field="city"],
     .photo-form input[data-field="note"] {
-      grid-column: 1 / -1;
-    }
-
-    .photo-status-select {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
       grid-column: 1 / -1;
     }
 
@@ -3950,84 +3943,133 @@
       grid-column: 1 / -1;
     }
 
-    .photo-list {
-      display: grid;
-      gap: 10px;
-    }
-
-    .photo-record {
-      display: grid;
-      gap: 10px;
-      padding: 12px;
+    .photo-table-wrap {
+      width: 100%;
+      overflow-x: auto;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
-      box-shadow: 0 8px 18px rgba(31, 41, 55, 0.04);
     }
 
-    .photo-record-main {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 10px;
-      align-items: start;
+    .photo-table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 13px;
     }
 
-    .photo-record-title {
-      display: grid;
-      gap: 4px;
-      min-width: 0;
+    .photo-table th,
+    .photo-table td {
+      border: 1px solid #d8dee8;
+      padding: 8px 9px;
+      text-align: center;
+      vertical-align: middle;
+      overflow-wrap: anywhere;
     }
 
-    .photo-record-title strong {
+    .photo-table th {
+      background: #fde9ee;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 950;
+    }
+
+    .photo-table th.photo-table-title {
+      background: #ffe9a8;
+      color: #8a4b04;
+    }
+
+    .photo-table td.photo-year,
+    .photo-table td.photo-month {
+      background: #dbe5f5;
+      font-weight: 950;
+    }
+
+    .photo-table td.photo-country {
+      background: #eef3f8;
+      font-weight: 950;
+    }
+
+    .photo-table td.photo-city {
+      font-weight: 850;
+    }
+
+    .photo-table tr:nth-child(4n + 1) td {
+      background-color: #f8fbff;
+    }
+
+    .photo-table tr:nth-child(4n + 2) td {
+      background-color: #f7f0ff;
+    }
+
+    .photo-table tr:nth-child(4n + 3) td {
+      background-color: #f2faef;
+    }
+
+    .photo-table tr:nth-child(4n) td {
+      background-color: #fff6da;
+    }
+
+    .photo-table tr td.photo-year,
+    .photo-table tr td.photo-month {
+      background: #dbe5f5;
+    }
+
+    .photo-table tr td.photo-actions {
+      background: #fff;
+    }
+
+    .photo-check {
+      width: 24px;
+      height: 24px;
+      display: inline-grid;
+      place-items: center;
+      border: 2px solid #1d4ed8;
+      border-radius: 4px;
+      background: #fffaf0;
+      color: #050505;
+      font-size: 18px;
+      line-height: 1;
+      font-weight: 950;
+    }
+
+    .photo-check[data-status="done"] {
+      border-color: #050505;
+      background: #050505;
+      color: #fff;
+    }
+
+    .photo-check[data-status="none"] {
+      border-color: #94a3b8;
+      background: #e2e8f0;
+      color: #64748b;
+    }
+
+    .photo-none-button {
+      width: 24px;
+      height: 24px;
+      margin-left: 6px;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      background: #f8fafc;
+      color: #64748b;
       font-size: 15px;
-      overflow-wrap: anywhere;
+      font-weight: 950;
+      line-height: 1;
     }
 
-    .photo-record-title span,
-    .photo-record-title small {
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 800;
-      overflow-wrap: anywhere;
+    .photo-none-button.active {
+      background: #1f2937;
+      border-color: #1f2937;
+      color: #fff;
     }
 
-    .photo-record-actions {
-      display: flex;
-      gap: 6px;
-    }
-
-    .photo-status-row {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-    }
-
-    .photo-status-button {
-      min-height: 42px;
-      border: 1px solid var(--status-border, #d8dee8);
-      border-radius: 8px;
-      background: var(--status-bg, #f8fafc);
-      color: var(--status-text, var(--muted));
-      font-size: 12px;
-      font-weight: 900;
-    }
-
-    .photo-status-button[data-status="done"] {
-      --status-bg: #ecfdf5;
-      --status-border: #bbf7d0;
-      --status-text: #047857;
-    }
-
-    .photo-status-button[data-status="todo"] {
-      --status-bg: #fff7ed;
-      --status-border: #fed7aa;
-      --status-text: #b45309;
-    }
-
-    .photo-status-button[data-status="none"] {
-      --status-bg: #f1f5f9;
-      --status-border: #d8dee8;
-      --status-text: #64748b;
+    .photo-table .icon-button {
+      width: 34px;
+      height: 34px;
+      min-height: 34px;
+      margin: 0 2px;
     }
 
     nav {
@@ -4126,9 +4168,8 @@
         border-top: 1px dashed #cbd5e1;
       }
 
-      .photo-status-row,
-      .photo-status-select {
-        grid-template-columns: 1fr;
+      .photo-table {
+        min-width: 680px;
       }
     }
 
@@ -4600,81 +4641,6 @@
         </div>
       </section>
 
-      <section class="view" id="photo-view">
-        <div class="photo-layout">
-          <div class="panel photo-control-panel">
-            <div class="photo-head">
-              <h2>照片整理</h2>
-              <p>记录旅行素材的整理进度，照片、视频和手账可以分开追踪。</p>
-            </div>
-
-            <div class="photo-stats">
-              <div class="stat">
-                <strong id="photoTotalCount">0</strong>
-                <span>记录地点</span>
-              </div>
-              <div class="stat">
-                <strong id="photoTodoCount">0</strong>
-                <span>照片未整理</span>
-              </div>
-              <div class="stat">
-                <strong id="videoTodoCount">0</strong>
-                <span>视频未整理</span>
-              </div>
-              <div class="stat">
-                <strong id="journalTodoCount">0</strong>
-                <span>手账未整理</span>
-              </div>
-            </div>
-
-            <div class="photo-filters">
-              <input id="photoSearch" type="text" maxlength="60" placeholder="搜索月份 / 行程 / 地点 / 备注">
-              <select id="photoStatusFilter" aria-label="照片整理筛选">
-                <option value="all">全部记录</option>
-                <option value="open">未完成</option>
-                <option value="done">已完成</option>
-              </select>
-              <select id="photoMonthFilter" aria-label="月份筛选">
-                <option value="all">全部月份</option>
-              </select>
-            </div>
-
-            <div class="photo-form" id="photoForm">
-              <input data-field="month" type="text" maxlength="20" placeholder="月份，例如：一月 / 2026-07">
-              <input data-field="trip" type="text" maxlength="40" placeholder="行程 / 国家 / 区域">
-              <input data-field="place" type="text" maxlength="60" placeholder="地点名称">
-              <input data-field="note" type="text" maxlength="80" placeholder="备注，例如：第 1 天 / 夜景 / 待补">
-              <div class="photo-status-select">
-                <select data-field="photoStatus" aria-label="照片状态">
-                  <option value="todo">照片：未整理</option>
-                  <option value="done">照片：已完成</option>
-                  <option value="none">照片：不需要</option>
-                </select>
-                <select data-field="videoStatus" aria-label="视频状态">
-                  <option value="todo">视频：未整理</option>
-                  <option value="done">视频：已完成</option>
-                  <option value="none">视频：不需要</option>
-                </select>
-                <select data-field="journalStatus" aria-label="手账状态">
-                  <option value="todo">手账：未整理</option>
-                  <option value="done">手账：已完成</option>
-                  <option value="none">手账：不需要</option>
-                </select>
-              </div>
-              <div class="photo-form-actions">
-                <button class="primary" id="savePhotoRecord" type="button">新增地点</button>
-                <button class="secondary" id="cancelPhotoEdit" type="button" hidden>取消</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="panel photo-list-panel">
-            <h2>地点清单</h2>
-            <div class="photo-list" id="photoArchiveList"></div>
-          </div>
-        </div>
-      </section>
-
       <section class="view" id="report-view">
         <div class="weekly-left">
           <div class="weekly-grid">
@@ -4721,6 +4687,65 @@
           <div class="weekly-overview" id="weeklyOverview"></div>
         </div>
       </section>
+
+      <section class="view" id="photo-view">
+        <div class="photo-layout">
+          <div class="panel photo-control-panel">
+            <div class="photo-head">
+              <h2>照片整理</h2>
+              <p>记录旅行素材的整理进度，照片、视频和手账可以分开追踪。</p>
+            </div>
+
+            <div class="photo-stats">
+              <div class="stat">
+                <strong id="photoTotalCount">0</strong>
+                <span>记录地点</span>
+              </div>
+              <div class="stat">
+                <strong id="photoTodoCount">0</strong>
+                <span>照片未整理</span>
+              </div>
+              <div class="stat">
+                <strong id="videoTodoCount">0</strong>
+                <span>视频未整理</span>
+              </div>
+              <div class="stat">
+                <strong id="journalTodoCount">0</strong>
+                <span>手账未整理</span>
+              </div>
+            </div>
+
+            <div class="photo-filters">
+              <input id="photoSearch" type="text" maxlength="60" placeholder="搜索年份 / 月份 / 国家 / 城市 / 备注">
+              <select id="photoStatusFilter" aria-label="照片整理筛选">
+                <option value="all">全部记录</option>
+                <option value="open">未完成</option>
+                <option value="done">已完成</option>
+              </select>
+              <select id="photoMonthFilter" aria-label="月份筛选">
+                <option value="all">全部月份</option>
+              </select>
+            </div>
+
+            <div class="photo-form" id="photoForm">
+              <input data-field="year" type="text" maxlength="12" placeholder="年份，例如：2026">
+              <input data-field="month" type="text" maxlength="20" placeholder="月份，例如：一月 / 07">
+              <input data-field="country" type="text" maxlength="40" placeholder="国家 / 地区">
+              <input data-field="city" type="text" maxlength="60" placeholder="城市 / 地点">
+              <input data-field="note" type="text" maxlength="80" placeholder="备注，例如：第 1 天 / 夜景 / 待补">
+              <div class="photo-form-actions">
+                <button class="primary" id="savePhotoRecord" type="button">新增地点</button>
+                <button class="secondary" id="cancelPhotoEdit" type="button" hidden>取消</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel photo-list-panel">
+            <h2>地点清单</h2>
+            <div class="photo-table-wrap" id="photoArchiveList"></div>
+          </div>
+        </div>
+      </section>
     </main>
 
     <nav aria-label="主导航">
@@ -4740,13 +4765,13 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="12" r="7"/><path d="M6 7 4 4"/><path d="m16 7 2-3"/><path d="M8.5 11h.01"/><path d="M13.5 11h.01"/><path d="M9 15c1.6 1 3.4 1 5 0"/></svg>
         宠物
       </button>
-      <button class="tab" data-view="photo-view" title="照片">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m4 16 4-4 3 3 2-2 7 6"/></svg>
-        照片
-      </button>
       <button class="tab" data-view="report-view" title="周报">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5"/><path d="M12 16V8"/><path d="M16 16v-3"/></svg>
         周报
+      </button>
+      <button class="tab" data-view="photo-view" title="照片">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m4 16 4-4 3 3 2-2 7 6"/></svg>
+        照片
       </button>
     </nav>
   </div>
@@ -16995,9 +17020,9 @@
     let photoMonthFilter = "all";
 
     const photoStatusMeta = {
-      todo: { label: "未整理", next: "done" },
-      done: { label: "已完成", next: "none" },
-      none: { label: "不需要", next: "todo" }
+      todo: { label: "□", text: "未完成" },
+      done: { label: "✓", text: "已完成" },
+      none: { label: "—", text: "不需要" }
     };
 
     let state = loadState();
@@ -17182,9 +17207,10 @@
       const now = new Date().toISOString();
       return {
         id: record.id || makeId(),
+        year: String(record.year || "").trim(),
         month: String(record.month || "").trim(),
-        trip: String(record.trip || "").trim(),
-        place: String(record.place || "").trim(),
+        country: String(record.country || record.trip || "").trim(),
+        city: String(record.city || record.place || "").trim(),
         note: String(record.note || "").trim(),
         photoStatus: normalizePhotoStatus(record.photoStatus),
         videoStatus: normalizePhotoStatus(record.videoStatus),
@@ -17208,7 +17234,7 @@
         || (photoStatusFilter === "open" && photoRecordOpen(record))
         || (photoStatusFilter === "done" && photoRecordDone(record));
       const search = photoSearchTerm.trim().toLowerCase();
-      const searchMatch = !search || [record.month, record.trip, record.place, record.note]
+      const searchMatch = !search || [record.year, record.month, record.country, record.city, record.note]
         .join(" ")
         .toLowerCase()
         .includes(search);
@@ -17219,21 +17245,20 @@
       const form = document.querySelector("#photoForm");
       if (!form) return;
       const values = record || {
+        year: "",
         month: "",
-        trip: "",
-        place: "",
+        country: "",
+        city: "",
         note: "",
         photoStatus: "todo",
         videoStatus: "todo",
         journalStatus: "todo"
       };
+      form.querySelector('[data-field="year"]').value = values.year;
       form.querySelector('[data-field="month"]').value = values.month;
-      form.querySelector('[data-field="trip"]').value = values.trip;
-      form.querySelector('[data-field="place"]').value = values.place;
+      form.querySelector('[data-field="country"]').value = values.country;
+      form.querySelector('[data-field="city"]').value = values.city;
       form.querySelector('[data-field="note"]').value = values.note;
-      form.querySelector('[data-field="photoStatus"]').value = values.photoStatus;
-      form.querySelector('[data-field="videoStatus"]').value = values.videoStatus;
-      form.querySelector('[data-field="journalStatus"]').value = values.journalStatus;
       document.querySelector("#savePhotoRecord").textContent = record ? "保存修改" : "新增地点";
       document.querySelector("#cancelPhotoEdit").hidden = !record;
     }
@@ -17241,16 +17266,18 @@
     function readPhotoForm() {
       const form = document.querySelector("#photoForm");
       const now = new Date().toISOString();
+      const current = editingPhotoId ? state.photoArchive.find(item => item.id === editingPhotoId) : null;
       return normalizePhotoRecord({
         id: editingPhotoId || makeId(),
+        year: form.querySelector('[data-field="year"]').value,
         month: form.querySelector('[data-field="month"]').value,
-        trip: form.querySelector('[data-field="trip"]').value,
-        place: form.querySelector('[data-field="place"]').value,
+        country: form.querySelector('[data-field="country"]').value,
+        city: form.querySelector('[data-field="city"]').value,
         note: form.querySelector('[data-field="note"]').value,
-        photoStatus: form.querySelector('[data-field="photoStatus"]').value,
-        videoStatus: form.querySelector('[data-field="videoStatus"]').value,
-        journalStatus: form.querySelector('[data-field="journalStatus"]').value,
-        createdAt: editingPhotoId ? state.photoArchive.find(item => item.id === editingPhotoId)?.createdAt : now,
+        photoStatus: current?.photoStatus || "todo",
+        videoStatus: current?.videoStatus || "todo",
+        journalStatus: current?.journalStatus || "todo",
+        createdAt: current?.createdAt || now,
         updatedAt: now
       });
     }
@@ -17297,51 +17324,87 @@
         return;
       }
 
+      const table = document.createElement("table");
+      table.className = "photo-table";
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th class="photo-table-title" colspan="5">旅行素材整理</th>
+            <th>照片</th>
+            <th>视频</th>
+            <th>手账</th>
+            <th>操作</th>
+          </tr>
+          <tr>
+            <th>年份</th>
+            <th>月份</th>
+            <th>国家</th>
+            <th>城市</th>
+            <th>备注</th>
+            <th>□</th>
+            <th>□</th>
+            <th>□</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+      const tbody = table.querySelector("tbody");
       visible.forEach(record => {
-        const row = document.createElement("div");
-        row.className = "photo-record";
+        const row = document.createElement("tr");
         row.dataset.photoId = record.id;
         row.innerHTML = `
-          <div class="photo-record-main">
-            <div class="photo-record-title">
-              <strong></strong>
-              <span></span>
-              <small></small>
-            </div>
-            <div class="photo-record-actions">
-              <button class="icon-button" data-action="edit" title="编辑">✎</button>
-              <button class="icon-button" data-action="delete" title="删除">×</button>
-            </div>
-          </div>
-          <div class="photo-status-row">
-            <button class="photo-status-button" data-field="photoStatus" type="button"></button>
-            <button class="photo-status-button" data-field="videoStatus" type="button"></button>
-            <button class="photo-status-button" data-field="journalStatus" type="button"></button>
-          </div>
+          <td class="photo-year"></td>
+          <td class="photo-month"></td>
+          <td class="photo-country"></td>
+          <td class="photo-city"></td>
+          <td class="photo-note"></td>
+          <td data-status-cell="photoStatus"></td>
+          <td data-status-cell="videoStatus"></td>
+          <td data-status-cell="journalStatus"></td>
+          <td class="photo-actions">
+            <button class="icon-button" data-action="edit" title="编辑">✎</button>
+            <button class="icon-button" data-action="delete" title="删除">×</button>
+          </td>
         `;
-        row.querySelector("strong").textContent = record.place || "未命名地点";
-        row.querySelector("span").textContent = [record.month, record.trip].filter(Boolean).join(" · ") || "未填写月份和行程";
-        row.querySelector("small").textContent = record.note || "无备注";
+        row.querySelector(".photo-year").textContent = record.year || "-";
+        row.querySelector(".photo-month").textContent = record.month || "-";
+        row.querySelector(".photo-country").textContent = record.country || "-";
+        row.querySelector(".photo-city").textContent = record.city || "未命名地点";
+        row.querySelector(".photo-note").textContent = record.note || "";
         [
-          ["photoStatus", "照片"],
-          ["videoStatus", "视频"],
-          ["journalStatus", "手账"]
-        ].forEach(([field, label]) => {
-          const button = row.querySelector(`[data-field="${field}"]`);
-          button.dataset.status = record[field];
-          button.textContent = `${label}：${photoStatusMeta[record[field]].label}`;
-          button.addEventListener("click", () => cyclePhotoStatus(record.id, field));
+          "photoStatus",
+          "videoStatus",
+          "journalStatus"
+        ].forEach(field => {
+          const cell = row.querySelector(`[data-status-cell="${field}"]`);
+          const check = document.createElement("button");
+          check.className = "photo-check";
+          check.type = "button";
+          check.dataset.status = record[field];
+          check.title = photoStatusMeta[record[field]].text;
+          check.textContent = photoStatusMeta[record[field]].label;
+          check.addEventListener("click", () => togglePhotoDone(record.id, field));
+          cell.appendChild(check);
+          const notNeeded = document.createElement("button");
+          notNeeded.className = `photo-none-button${record[field] === "none" ? " active" : ""}`;
+          notNeeded.type = "button";
+          notNeeded.title = record[field] === "none" ? "取消不需要" : "标记为不需要";
+          notNeeded.textContent = "—";
+          notNeeded.addEventListener("click", () => togglePhotoNone(record.id, field));
+          cell.appendChild(notNeeded);
         });
         row.querySelector('[data-action="edit"]').addEventListener("click", () => editPhotoRecord(record.id));
         row.querySelector('[data-action="delete"]').addEventListener("click", () => deletePhotoRecord(record.id));
-        root.appendChild(row);
+        tbody.appendChild(row);
       });
+      root.appendChild(table);
     }
 
     function savePhotoRecordFromForm() {
       const record = readPhotoForm();
-      if (!record.place) {
-        showToast("先写一个地点名称吧。");
+      if (!record.city) {
+        showToast("先写一个城市或地点名称吧。");
         return;
       }
       if (editingPhotoId) {
@@ -17368,7 +17431,7 @@
     function deletePhotoRecord(id) {
       const record = state.photoArchive.find(item => item.id === id);
       if (!record) return;
-      if (!window.confirm(`确认删除「${record.place || "未命名地点"}」吗？`)) return;
+      if (!window.confirm(`确认删除「${record.city || "未命名地点"}」吗？`)) return;
       state.photoArchive = state.photoArchive.filter(item => item.id !== id);
       if (editingPhotoId === id) {
         editingPhotoId = null;
@@ -17379,13 +17442,39 @@
       showToast("照片整理记录已删除。");
     }
 
-    function cyclePhotoStatus(id, field) {
+    function setPhotoStatus(id, field, status) {
       const record = state.photoArchive.find(item => item.id === id);
-      if (!record || !photoStatusMeta[record[field]]) return;
-      record[field] = photoStatusMeta[record[field]].next;
+      if (!record || !photoStatusMeta[status]) return;
+      record[field] = status;
       record.updatedAt = new Date().toISOString();
       saveState();
       renderPhotoArchive();
+    }
+
+    function togglePhotoDone(id, field) {
+      const record = state.photoArchive.find(item => item.id === id);
+      if (!record) return;
+      if (record[field] === "todo") {
+        setPhotoStatus(id, field, "done");
+        return;
+      }
+      if (record[field] === "done") {
+        if (window.confirm("是否恢复为未完成状态？")) setPhotoStatus(id, field, "todo");
+        return;
+      }
+      if (record[field] === "none") {
+        if (window.confirm("这个项目之前标记为不需要，是否恢复为未完成？")) setPhotoStatus(id, field, "todo");
+      }
+    }
+
+    function togglePhotoNone(id, field) {
+      const record = state.photoArchive.find(item => item.id === id);
+      if (!record) return;
+      if (record[field] === "none") {
+        setPhotoStatus(id, field, "todo");
+        return;
+      }
+      if (window.confirm("确认标记为不需要吗？")) setPhotoStatus(id, field, "none");
     }
 
     function renderRewardSections() {
@@ -20320,6 +20409,6 @@
     openRouteFromHash();
     updateTimerDisplay();
   </script>
-  <!-- deploy: add photo archive board v128 -->
+  <!-- deploy: refine photo archive table v129 -->
 </body>
 </html>
