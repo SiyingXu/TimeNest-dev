@@ -4406,12 +4406,38 @@
         grid-column: 2;
         grid-row: 2;
         width: 100%;
+        height: var(--travel-panel-height, auto);
+        max-height: var(--travel-panel-height, none);
+        min-height: 0;
       }
 
       .view.active#rewards-view.route-exploring #journeyPanel .route-chapter-list {
         max-height: none;
         min-height: 0;
         height: 100%;
+      }
+
+      .view.active#rewards-view.city-exploring .current-city-card {
+        height: 100%;
+        min-height: 0;
+        grid-template-rows: auto auto auto minmax(0, 1fr);
+        overflow: hidden;
+      }
+
+      .view.active#rewards-view.city-exploring .city-task-list {
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding-right: 4px;
+      }
+
+      .view.active#rewards-view.city-exploring .city-task-list::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      .view.active#rewards-view.city-exploring .city-task-list::-webkit-scrollbar-thumb {
+        background: rgba(120, 90, 70, .22);
+        border-radius: 999px;
       }
 
       .view.active#rewards-view #journeyPanel,
@@ -20409,6 +20435,6 @@
     openRouteFromHash();
     updateTimerDisplay();
   </script>
-  <!-- deploy: refine photo archive table v129 -->
+  <!-- deploy: align city panel heights v130 -->
 </body>
 </html>
