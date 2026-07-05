@@ -17842,11 +17842,12 @@
       base.ownedRewards = mergeUnique(local?.ownedRewards, remote?.ownedRewards);
       base.wishlist = mergeUnique(local?.wishlist, remote?.wishlist);
       base.chapterRewards = mergeUnique(local?.chapterRewards, remote?.chapterRewards);
-      base.records = withoutDeletedRecords(mergeById(local?.records, remote?.records), deleted).slice(-500);
-      base.timeLogs = withoutDeleted(mergeById(local?.timeLogs, remote?.timeLogs), deleted.timeLogs);
-      base.tasks = withoutDeleted(mergeById(local?.tasks, remote?.tasks), deleted.tasks);
-      base.plans = withoutDeleted(mergeById(local?.plans, remote?.plans), deleted.plans);
-      base.photoArchive = withoutDeleted(mergeById(local?.photoArchive, remote?.photoArchive), deleted.photoArchive);
+      const newestSnapshot = remoteUpdated > localUpdated ? remote : local;
+      base.records = withoutDeletedRecords(newestSnapshot?.records, deleted).slice(-500);
+      base.timeLogs = withoutDeleted(newestSnapshot?.timeLogs, deleted.timeLogs);
+      base.tasks = withoutDeleted(newestSnapshot?.tasks, deleted.tasks);
+      base.plans = withoutDeleted(newestSnapshot?.plans, deleted.plans);
+      base.photoArchive = withoutDeleted(newestSnapshot?.photoArchive, deleted.photoArchive);
       base.travel ??= {};
       base.travel.arrivedCities = mergeUnique(local?.travel?.arrivedCities, remote?.travel?.arrivedCities);
       base.travel.tickets = mergeUnique(local?.travel?.tickets, remote?.travel?.tickets);
