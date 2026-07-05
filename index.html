@@ -18753,6 +18753,7 @@
           else if (item.mapScope === "germany") mapMode = "world";
           else if (isMapMode(item.mapScope)) mapMode = item.mapScope;
           else if (item.mapScope === "world") mapMode = "world";
+          if (isCityMapMode(mapMode)) exploringCityId = cityIdFromMapMode(mapMode) || rewardCityId || exploringCityId;
         }
       }
       renderTravelMap();
@@ -18888,7 +18889,7 @@
       document.querySelector("#viewArrivalCard").addEventListener("click", () => {
         if (!cityCard) return;
         closeCardPreview();
-        showRewardDetail(cityCard);
+        openCardPreview(cityCard);
       });
       modal.addEventListener("click", event => {
         if (event.target === modal) closeCardPreview();
@@ -19777,6 +19778,6 @@
     openRouteFromHash();
     updateTimerDisplay();
   </script>
-  <!-- deploy: sync first chapter sight descriptions v120 -->
+  <!-- deploy: keep arrival card preview on route map v121 -->
 </body>
 </html>
