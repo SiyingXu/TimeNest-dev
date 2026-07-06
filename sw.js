@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v151";
+const CACHE_VERSION = "v152";
 const CORE_CACHE = `timenest-core-${CACHE_VERSION}`;
 const IMAGE_CACHE = `timenest-images-${CACHE_VERSION}`;
 const DATA_CACHE = `timenest-data-${CACHE_VERSION}`;
