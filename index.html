@@ -18395,11 +18395,30 @@
         + Object.keys(source.travel?.cityUnlocks || {}).length;
     }
 
-    function pickFromMoreComplete(local, remote, field, localUpdated, remoteUpdated) {
+    function deletedActivityScore(source = {}) {
+      const deleted = source.sync?.deleted || {};
+      return ["tasks", "plans", "timeLogs", "photoArchive", "records"]
+        .reduce((sum, collection) => sum + (Array.isArray(deleted[collection]) ? deleted[collection].length : 0), 0);
+    }
+
+    function scalarLooksInitial(source = {}, field) {
+      if (field === "coins") return Number(source?.[field] ?? 300) === 300;
+      return Number(source?.[field] ?? 0) === 0;
+    }
+
+    function pickSyncedScalar(local, remote, field, localUpdated, remoteUpdated) {
       const localScore = stateActivityScore(local);
       const remoteScore = stateActivityScore(remote);
+      if (localUpdated > remoteUpdated) return local?.[field];
+      if (remoteUpdated > localUpdated) {
+        if (localScore > remoteScore && scalarLooksInitial(remote, field)) return local?.[field];
+        return remote?.[field];
+      }
+      const localDeletedScore = deletedActivityScore(local);
+      const remoteDeletedScore = deletedActivityScore(remote);
+      if (localDeletedScore !== remoteDeletedScore) return localDeletedScore > remoteDeletedScore ? local?.[field] : remote?.[field];
       if (localScore !== remoteScore) return localScore > remoteScore ? local?.[field] : remote?.[field];
-      return remoteUpdated > localUpdated ? remote?.[field] : local?.[field];
+      return local?.[field];
     }
 
     function mergeDeleted(left = {}, right = {}) {
@@ -18443,10 +18462,11 @@
       base.tasks = withoutDeleted(mergeById(local?.tasks, remote?.tasks), deleted.tasks);
       base.plans = withoutDeleted(mergeById(local?.plans, remote?.plans), deleted.plans);
       base.photoArchive = withoutDeleted(mergeById(local?.photoArchive, remote?.photoArchive), deleted.photoArchive);
-      base.history = mergeHistory(local?.history, remote?.history);
-      base.coins = pickFromMoreComplete(local, remote, "coins", localUpdated, remoteUpdated) ?? base.coins ?? 300;
-      base.focusMinutes = pickFromMoreComplete(local, remote, "focusMinutes", localUpdated, remoteUpdated) ?? base.focusMinutes ?? 0;
-      base.todayDone = pickFromMoreComplete(local, remote, "todayDone", localUpdated, remoteUpdated) ?? base.todayDone ?? 0;
+      base.history = mergeHistory(local?.history, remote?.history)
+        .filter(item => !item.logId || !(deleted.timeLogs || []).includes(item.logId));
+      base.coins = pickSyncedScalar(local, remote, "coins", localUpdated, remoteUpdated) ?? base.coins ?? 300;
+      base.focusMinutes = pickSyncedScalar(local, remote, "focusMinutes", localUpdated, remoteUpdated) ?? base.focusMinutes ?? 0;
+      base.todayDone = pickSyncedScalar(local, remote, "todayDone", localUpdated, remoteUpdated) ?? base.todayDone ?? 0;
       base.funds = { ...(local?.funds || {}) };
       Object.entries(remote?.funds || {}).forEach(([id, amount]) => {
         base.funds[id] = Math.max(Number(base.funds[id]) || 0, Number(amount) || 0);
