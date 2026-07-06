@@ -473,12 +473,12 @@
       width: calc(var(--lane-width, 100%) - 8px);
       top: var(--top);
       height: var(--height);
-      min-height: 44px;
+      min-height: 24px;
       display: grid;
       grid-template-columns: 1fr;
-      gap: 3px;
+      gap: 2px;
       align-items: start;
-      padding: 7px 8px 7px 9px;
+      padding: 5px 7px 5px 8px;
       border: 1px solid var(--item-border, rgba(227,107,127,.28));
       border-left: 6px solid var(--item-accent, var(--rose));
       border-radius: 8px;
@@ -523,6 +523,32 @@
       white-space: normal;
       overflow: hidden;
       text-overflow: clip;
+    }
+
+    .plan-item.compact {
+      padding-top: 4px;
+      padding-bottom: 4px;
+      align-items: center;
+    }
+
+    .plan-item.compact > div {
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
+      min-width: 0;
+      white-space: nowrap;
+    }
+
+    .plan-item.compact .plan-title {
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+
+    .plan-item.compact .plan-meta {
+      flex: 0 0 auto;
+      flex-wrap: nowrap;
+      margin-top: 0;
+      white-space: nowrap;
     }
 
     .plan-task-link {
@@ -19463,11 +19489,12 @@
         const visibleEnd = Math.min(end, timelineEnd);
         if (visibleEnd <= timelineStart || visibleStart >= timelineEnd) return null;
         const top = (visibleStart - timelineStart) / timelineMinutes * 100;
-        const visibleMinutes = Math.max(15, visibleEnd - visibleStart);
-        const minHeight = 44 / 810 * 100;
+        const actualVisibleMinutes = visibleEnd - visibleStart;
+        const visibleMinutes = Math.max(15, actualVisibleMinutes);
+        const minHeight = 24 / 810 * 100;
         const height = Math.min(100 - top, Math.max(minHeight, visibleMinutes / timelineMinutes * 100));
         const laneEnd = top + height;
-        return { start, end, visibleStart, visibleEnd, top, height, laneEnd };
+        return { start, end, visibleStart, visibleEnd, top, height, laneEnd, actualVisibleMinutes };
       };
 
       const assignTimelineLanes = (items) => {
@@ -19497,6 +19524,7 @@
         const displayMinutes = Math.max(1, range.end - range.start);
         const row = document.createElement("div");
         row.className = className;
+        if (range.actualVisibleMinutes <= 35) row.classList.add("compact");
         row.style.setProperty("--top", `${range.top}%`);
         row.style.setProperty("--height", `${range.height}%`);
         row.style.setProperty("--lane-left", `${block.lane / block.laneCount * 100}%`);
