@@ -22019,10 +22019,9 @@
 
     document.querySelector("#timerStart").addEventListener("click", () => {
       if (timer.interval) {
-        syncTimerFromClock();
+        pauseTimerClock();
         clearInterval(timer.interval);
         timer.interval = null;
-        timer.runningSince = null;
         document.querySelector("#timerStart").textContent = "继续";
         updateTimerDisplay();
         return;
