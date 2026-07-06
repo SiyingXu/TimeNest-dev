@@ -17862,6 +17862,7 @@
     let activeStampPage = 0;
     let activeRewardSection = "city";
     let selectedRewardId = "tuebingen-card";
+    let cityTaskListScroll = { cityId: "", top: 0 };
     let mapMode = "world";
     let exploringCityId = null;
     let timerMode = "countdown";
@@ -20438,6 +20439,20 @@
       if (height > 0) rewardsView.style.setProperty("--travel-panel-height", `${height}px`);
     }
 
+    function rememberCityTaskScroll(cityId = exploringCityId) {
+      const list = document.querySelector("#selectedCard .city-task-list");
+      if (!list || !cityId) return;
+      cityTaskListScroll = { cityId, top: list.scrollTop };
+    }
+
+    function restoreCityTaskScroll(cityId) {
+      requestAnimationFrame(() => {
+        const list = document.querySelector("#selectedCard .city-task-list");
+        if (!list || cityTaskListScroll.cityId !== cityId) return;
+        list.scrollTop = Math.min(cityTaskListScroll.top, Math.max(0, list.scrollHeight - list.clientHeight));
+      });
+    }
+
     function passportCityId(item) {
       if (item.cityId) return item.cityId;
       if (item.routeCityId) return item.routeCityId;
@@ -20950,6 +20965,8 @@
     function renderCurrentCityCard(cityId = null) {
       const root = document.querySelector("#selectedCard");
       const { city, cityCard, visits, sideQuests } = currentCityItems(cityId);
+      const shouldRestoreScroll = root?.dataset.cityId === city.id;
+      if (shouldRestoreScroll) rememberCityTaskScroll(city.id);
       const cityIndex = journeyCityIndex(city.id);
       const next = journeyCities[cityIndex + 1];
       const progress = cityProgress(city.id);
@@ -20963,6 +20980,7 @@
       const chapterRewardReady = Boolean(chapter?.completed && !chapterRewardClaimed);
       const travelTicketHint = `游览${requiredProgress}个主线景点后可购买交通票前往下一站`;
       root.className = "current-city-card";
+      root.dataset.cityId = city.id;
       root.innerHTML = `
         <div class="journey-head">
           <div>
@@ -21037,10 +21055,12 @@
           ` : ""}
         </div>
       `;
+      if (shouldRestoreScroll) restoreCityTaskScroll(city.id);
       root.querySelectorAll("[data-task-reward]").forEach(row => {
         const item = shopItems.find(reward => reward.id === row.dataset.taskReward);
         row.addEventListener("click", event => {
           if (!item) return;
+          rememberCityTaskScroll(city.id);
           if (isOwned(item)) {
             selectedRewardId = item.id;
             openCardPreview(item);
@@ -21062,6 +21082,7 @@
       root.querySelector("[data-travel-ticket]")?.addEventListener("click", event => {
         const ticket = cityTravelTicket(city.id);
         if (!ticket) return;
+        rememberCityTaskScroll(city.id);
         if (event.target.closest("button")) {
           if (city.id !== state.travel.currentCityId) {
             showToast(`当前主线在「${journeyCities[currentJourneyIndex()].name}」，这里只能预览 ${city.name} 的项目。`);
