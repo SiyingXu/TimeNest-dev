@@ -525,6 +525,15 @@
       text-overflow: clip;
     }
 
+    .plan-meta.segment-meta {
+      display: grid;
+      gap: 1px;
+    }
+
+    .plan-meta.segment-meta span {
+      display: block;
+    }
+
     .plan-item.compact {
       padding-top: 4px;
       padding-bottom: 4px;
@@ -5176,6 +5185,18 @@
         target.sync.updatedAt = new Date().toISOString();
       }
       return true;
+    }
+
+    function sanitizeLogSegments(segments) {
+      if (!Array.isArray(segments)) return [];
+      return segments
+        .map(segment => ({
+          start: String(segment?.start || ""),
+          end: String(segment?.end || ""),
+          minutes: Math.max(0, Math.floor(Number(segment?.minutes) || 0))
+        }))
+        .filter(segment => /^\d{2}:\d{2}$/.test(segment.start) && /^\d{2}:\d{2}$/.test(segment.end) && segment.minutes > 0)
+        .slice(0, 24);
     }
     const devParams = new URLSearchParams(window.location.search);
     const appScope = location.pathname.includes("/TimeNest-dev") ? "dev" : "prod";
@@ -17942,6 +17963,7 @@
       elapsed: 0,
       startedAt: null,
       runningSince: null,
+      segments: [],
       interval: null
     };
 
@@ -18003,7 +18025,8 @@
       parsed.timeLogs = parsed.timeLogs.map(log => ({
         ...log,
         category: log.category || "daily",
-        reward: log.reward || { minutes: 0, coins: 0 }
+        reward: log.reward || { minutes: 0, coins: 0 },
+        segments: sanitizeLogSegments(log.segments)
       }));
       parsed.history = (parsed.history || []).map(item => ({ ...item, date: item.date || currentTodayKey() }));
       const rolledToToday = rollStateToCurrentDay(parsed, { touchSync: true });
@@ -19558,7 +19581,10 @@
 
       const placeBlock = (block, layer, type, className, statusText) => {
         const { item, range } = block;
-        const displayMinutes = Math.max(1, range.end - range.start);
+        const displayMinutes = Math.max(1, Math.floor(Number(item.minutes) || (range.end - range.start)));
+        const segmentLines = type === "log"
+          ? sanitizeLogSegments(item.segments).map(segment => `${segment.start}-${segment.end} ${formatMinutes(segment.minutes)}`)
+          : [];
         const row = document.createElement("div");
         row.className = className;
         if (range.actualVisibleMinutes <= 35) row.classList.add("compact");
@@ -19571,14 +19597,17 @@
         row.style.setProperty("--item-border", color.border);
         row.style.setProperty("--item-accent", color.accent);
         row.style.setProperty("--item-text", color.text);
-        row.innerHTML = `
-          <div>
-            <div class="plan-title"></div>
-            <div class="plan-meta">
+        const metaHtml = segmentLines.length
+          ? `<div class="plan-meta segment-meta">${segmentLines.map(line => `<span>${line}</span>`).join("")}</div>`
+          : `<div class="plan-meta">
               <span>${item.start}-${item.end}</span>
               <span>${formatMinutes(displayMinutes)}</span>
               <span>${type === "log" ? `<span class="log-category">${logCategoryName(item.category)}</span>` : statusText}</span>
-            </div>
+            </div>`;
+        row.innerHTML = `
+          <div>
+            <div class="plan-title"></div>
+            ${metaHtml}
           </div>
         `;
         row.querySelector(".plan-title").textContent = item.title;
@@ -21802,8 +21831,9 @@
       return reward;
     }
 
-    function addTimeLog({ title, start, end, planId = null, taskId = null, category = "study", skipReward = false }) {
-      const minutes = minutesBetween(start, end);
+    function addTimeLog({ title, start, end, planId = null, taskId = null, category = "study", skipReward = false, minutesOverride = null, segments = null }) {
+      const minutes = Math.max(1, Math.floor(Number(minutesOverride) || minutesBetween(start, end)));
+      const cleanSegments = sanitizeLogSegments(segments);
       const existing = planId ? state.timeLogs.find(log => log.planId === planId) : null;
       if (existing) {
         const previousReward = existing.reward || { minutes: 0, coins: 0 };
@@ -21813,11 +21843,12 @@
         existing.minutes = minutes;
         existing.taskId = taskId;
         existing.category = category;
+        existing.segments = cleanSegments;
         existing.updatedAt = new Date().toISOString();
         if (!skipReward) settleTimeLogReward(existing, previousReward);
         return existing;
       }
-      const log = { id: makeId(), title, start, end, minutes, planId, taskId, category, reward: { minutes: 0, coins: 0 }, date: currentTodayKey(), updatedAt: new Date().toISOString() };
+      const log = { id: makeId(), title, start, end, minutes, planId, taskId, category, reward: { minutes: 0, coins: 0 }, segments: cleanSegments, date: currentTodayKey(), updatedAt: new Date().toISOString() };
       state.timeLogs.push(log);
       if (!skipReward) settleTimeLogReward(log);
       return log;
@@ -22044,8 +22075,18 @@
       return elapsed;
     }
 
+    function closeCurrentTimerSegment(now = Date.now()) {
+      if (timer.runningSince === null) return;
+      const startTs = timer.runningSince;
+      const endTs = Math.max(startTs, now);
+      if (endTs - startTs >= 1000) {
+        timer.segments.push({ startTs, endTs });
+      }
+    }
+
     function pauseTimerClock(now = Date.now()) {
       timer.elapsed = currentTimerElapsed(now);
+      closeCurrentTimerSegment(now);
       timer.runningSince = null;
       if (timerMode === "countdown") {
         timer.left = Math.max(0, timer.total - timer.elapsed);
@@ -22078,29 +22119,90 @@
       timer.elapsed = 0;
       timer.startedAt = null;
       timer.runningSince = null;
+      timer.segments = [];
       document.querySelector("#timerStart").textContent = "开始";
       updateTimerDisplay();
     }
 
+    function settlementTimerSegments() {
+      const rawSegments = [...(Array.isArray(timer.segments) ? timer.segments : [])]
+        .filter(segment => Number.isFinite(segment.startTs) && Number.isFinite(segment.endTs) && segment.endTs > segment.startTs)
+        .sort((a, b) => a.startTs - b.startTs);
+      const totalSeconds = rawSegments.reduce((sum, segment) => sum + Math.max(0, (segment.endTs - segment.startTs) / 1000), 0);
+      const totalMinutes = Math.floor(totalSeconds / 60);
+      if (totalMinutes < 1) return { totalMinutes: 0, segments: [], chunks: [] };
+
+      const segments = rawSegments.map((segment, index) => {
+        const seconds = Math.max(0, (segment.endTs - segment.startTs) / 1000);
+        const minutes = Math.floor(seconds / 60);
+        return { ...segment, index, seconds, minutes, fraction: seconds / 60 - minutes };
+      });
+      let remainder = totalMinutes - segments.reduce((sum, segment) => sum + segment.minutes, 0);
+      segments
+        .slice()
+        .sort((a, b) => b.fraction - a.fraction || a.index - b.index)
+        .forEach(segment => {
+          if (remainder > 0) {
+            segment.minutes += 1;
+            remainder -= 1;
+          }
+        });
+      const settledSegments = segments
+        .filter(segment => segment.minutes > 0)
+        .sort((a, b) => a.startTs - b.startTs);
+
+      const chunks = [];
+      settledSegments.forEach(segment => {
+        const current = chunks[chunks.length - 1];
+        const previous = current?.[current.length - 1];
+        const pauseMinutes = previous ? (segment.startTs - previous.endTs) / 60000 : 0;
+        if (!current || pauseMinutes > 15) chunks.push([segment]);
+        else current.push(segment);
+      });
+
+      return { totalMinutes, segments: settledSegments, chunks };
+    }
+
+    function timerLogPayloads(title, category, chunks) {
+      return chunks
+        .map(chunk => {
+          const first = chunk[0];
+          const last = chunk[chunk.length - 1];
+          const minutes = chunk.reduce((sum, segment) => sum + segment.minutes, 0);
+          return {
+            title,
+            start: dateToTime(new Date(first.startTs)),
+            end: dateToTime(new Date(last.endTs)),
+            minutesOverride: minutes,
+            category,
+            segments: chunk.length > 1
+              ? chunk.map(segment => ({
+                start: dateToTime(new Date(segment.startTs)),
+                end: dateToTime(new Date(segment.endTs)),
+                minutes: segment.minutes
+              }))
+              : []
+          };
+        })
+        .filter(payload => payload.minutesOverride > 0);
+    }
+
     function finishTimer() {
-      const elapsed = syncTimerFromClock();
-      const spentSeconds = timerMode === "countdown" ? timer.total - timer.left : elapsed;
-      const spent = Math.max(0, Math.floor(spentSeconds / 60));
+      pauseTimerClock();
+      const settlement = settlementTimerSegments();
+      const spent = settlement.totalMinutes;
       if (spent < 1) {
         showToast("至少专注 1 分钟再结算。");
         return;
       }
-      const endDate = new Date();
-      const startDate = new Date(endDate.getTime() - spent * 60000);
       const timerTitle = document.querySelector("#timerTaskTitle").value.trim() || "专注计时";
       const category = selectedTimerCategory();
-      const log = addTimeLog({
-        title: timerTitle,
-        start: dateToTime(startDate),
-        end: dateToTime(endDate),
-        category
-      });
-      const reward = log.reward || { minutes: 0, coins: 0 };
+      const logs = timerLogPayloads(timerTitle, category, settlement.chunks)
+        .map(payload => addTimeLog(payload));
+      const reward = logs.reduce((sum, log) => ({
+        minutes: sum.minutes + (log.reward?.minutes || 0),
+        coins: sum.coins + (log.reward?.coins || 0)
+      }), { minutes: 0, coins: 0 });
       document.querySelector("#timerTaskTitle").value = "";
       resetTimer();
       saveState();
@@ -22215,6 +22317,7 @@
           log.minutes = minutesBetween(start, end);
           log.taskId = planningTaskId;
           log.category = category;
+          log.segments = [];
           settleTimeLogReward(log, previousReward);
         }
         const rewarded = logCategories[category]?.reward;
