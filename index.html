@@ -5154,7 +5154,29 @@
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
     }
 
-    const todayKey = localDateKey();
+    let todayKey = localDateKey();
+    function currentTodayKey() {
+      todayKey = localDateKey();
+      return todayKey;
+    }
+
+    function rollStateToCurrentDay(target, options = {}) {
+      if (!target || typeof target !== "object") return false;
+      const key = currentTodayKey();
+      if ((target.date || key) === key) return false;
+      target.date = key;
+      target.todayDone = 0;
+      target.focusMinutes = 0;
+      target.tasks = (Array.isArray(target.tasks) ? target.tasks : [])
+        .filter(task => !task.done)
+        .map(task => ({ ...task, done: false }));
+      target.plans = [];
+      target.timeLogs = [];
+      if (options.touchSync && target.sync && typeof target.sync === "object") {
+        target.sync.updatedAt = new Date().toISOString();
+      }
+      return true;
+    }
     const devParams = new URLSearchParams(window.location.search);
     const appScope = location.pathname.includes("/TimeNest-dev") ? "dev" : "prod";
     const storagePrefix = `TimeNest:${appScope}`;
@@ -5186,7 +5208,7 @@
       coins: 300,
       focusMinutes: 0,
       todayDone: 0,
-      date: todayKey,
+      date: currentTodayKey(),
       owned: [],
       ownedRewards: ["tuebingen-card"],
       pet: { food: 70, mood: 72, energy: 68 },
@@ -5200,7 +5222,7 @@
       tasks: [],
       photoArchive: [],
       sync: { updatedAt: new Date().toISOString(), mutations: [], deleted: {} },
-      history: [{ text: "图宾根旅行基金", amount: 300, time: "今天", date: todayKey }]
+      history: [{ text: "图宾根旅行基金", amount: 300, time: "今天", date: currentTodayKey() }]
     };
 
     const shopCategories = [
@@ -17983,17 +18005,9 @@
         category: log.category || "daily",
         reward: log.reward || { minutes: 0, coins: 0 }
       }));
-      parsed.history = (parsed.history || []).map(item => ({ ...item, date: item.date || todayKey }));
-      if (parsed.date !== todayKey) {
-        parsed.date = todayKey;
-        parsed.todayDone = 0;
-        parsed.focusMinutes = 0;
-        parsed.tasks = parsed.tasks
-          .filter(task => !task.done)
-          .map(task => ({ ...task, done: false }));
-        parsed.plans = [];
-        parsed.timeLogs = [];
-      }
+      parsed.history = (parsed.history || []).map(item => ({ ...item, date: item.date || currentTodayKey() }));
+      const rolledToToday = rollStateToCurrentDay(parsed, { touchSync: true });
+      if (rolledToToday) localStorage.setItem(stateStorageKey, JSON.stringify(parsed));
       return parsed;
     }
 
@@ -18476,6 +18490,10 @@
     }
 
     function mergeState(local, remote) {
+      local = structuredClone(local || {});
+      remote = structuredClone(remote || {});
+      rollStateToCurrentDay(local);
+      rollStateToCurrentDay(remote);
       const localUpdated = Date.parse(local?.sync?.updatedAt || 0);
       const remoteUpdated = Date.parse(remote?.sync?.updatedAt || 0);
       const base = remoteUpdated > localUpdated ? structuredClone(remote) : structuredClone(local);
@@ -18493,6 +18511,7 @@
       base.coins = pickSyncedScalar(local, remote, "coins", localUpdated, remoteUpdated) ?? base.coins ?? 300;
       base.focusMinutes = pickSyncedScalar(local, remote, "focusMinutes", localUpdated, remoteUpdated) ?? base.focusMinutes ?? 0;
       base.todayDone = pickSyncedScalar(local, remote, "todayDone", localUpdated, remoteUpdated) ?? base.todayDone ?? 0;
+      base.date = currentTodayKey();
       base.funds = { ...(local?.funds || {}) };
       Object.entries(remote?.funds || {}).forEach(([id, amount]) => {
         base.funds[id] = Math.max(Number(base.funds[id]) || 0, Number(amount) || 0);
@@ -18519,6 +18538,24 @@
         syncState.queueMutation({ type: options.type || "state-save", payload: options.payload || null }, options);
       }
       localStorage.setItem(stateStorageKey, JSON.stringify(state));
+    }
+
+    function ensureCurrentDay(options = {}) {
+      const previousDate = state?.date || todayKey;
+      const changed = rollStateToCurrentDay(state, { touchSync: true });
+      if (!changed) return false;
+      editingPlanId = null;
+      editingTimeLogId = null;
+      planningTaskId = null;
+      localStorage.setItem(stateStorageKey, JSON.stringify(state));
+      if (!options.skipSync) {
+        syncState.queueMutation({
+          type: "daily-rollover",
+          payload: { from: previousDate, to: state.date }
+        });
+      }
+      if (!options.skipRender) render();
+      return true;
     }
 
     function markDeleted(collection, ids) {
@@ -18565,7 +18602,7 @@
     function grantTestingCoins() {
       if (!ENABLE_TEST_TOOLS) return;
       state.coins = 999999;
-      state.history.unshift({ text: "测试金币", amount: 999999, date: todayKey, time: "测试" });
+      state.history.unshift({ text: "测试金币", amount: 999999, date: currentTodayKey(), time: "测试" });
       state.history = state.history.slice(0, 8);
       saveState({ skipSync: true, type: "dev-grant-coins" });
       render();
@@ -18577,7 +18614,7 @@
       if (!city) return;
       ensureTravelState();
       if (!state.travel.arrivedCities.includes(city.id)) state.travel.arrivedCities.push(city.id);
-      state.travel.cityUnlocks[city.id] ||= todayKey;
+      state.travel.cityUnlocks[city.id] ||= currentTodayKey();
       const cardId = cityCardId(city.id);
       if (!state.ownedRewards.includes(cardId)) state.ownedRewards.push(cardId);
     }
@@ -18636,12 +18673,12 @@
       const entry = {
         text: label,
         amount,
-        date: todayKey,
+        date: currentTodayKey(),
         time: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })
       };
       state.history.unshift(entry);
       state.history = state.history.slice(0, 8);
-      state.records.push({ kind: "earn", label, coins: amount, minutes: 0, date: todayKey, ts: Date.now(), ...record });
+      state.records.push({ kind: "earn", label, coins: amount, minutes: 0, date: currentTodayKey(), ts: Date.now(), ...record });
       state.records = state.records.slice(-500);
       saveState();
       render();
@@ -18653,11 +18690,11 @@
       state.history.unshift({
         text: label,
         amount: -amount,
-        date: todayKey,
+        date: currentTodayKey(),
         time: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })
       });
       state.history = state.history.slice(0, 8);
-      state.records.push({ kind: "spend", label, coins: -amount, minutes: 0, date: todayKey, ts: Date.now() });
+      state.records.push({ kind: "spend", label, coins: -amount, minutes: 0, date: currentTodayKey(), ts: Date.now() });
       state.records = state.records.slice(-500);
       saveState();
       render();
@@ -19881,7 +19918,7 @@
       if (!state.ownedRewards.includes(currentCard)) state.ownedRewards.push(currentCard);
     }
 
-    function recordCityUnlock(cityId, date = todayKey) {
+    function recordCityUnlock(cityId, date = currentTodayKey()) {
       if (!cityId || cityId === "tuebingen" || !journeyCityById(cityId)) return false;
       ensureTravelState();
       if (!state.travel.arrivedCities.includes(cityId)) state.travel.arrivedCities.push(cityId);
@@ -21745,7 +21782,7 @@
         state.history.unshift({
           text: label,
           amount: reward.coins,
-          date: todayKey,
+          date: currentTodayKey(),
           time: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }),
           logId: log.id
         });
@@ -21757,7 +21794,7 @@
           coins: reward.coins,
           minutes: reward.minutes,
           category: log.category,
-          date: todayKey,
+          date: currentTodayKey(),
           ts: Date.now()
         });
         state.records = state.records.slice(-500);
@@ -21780,7 +21817,7 @@
         if (!skipReward) settleTimeLogReward(existing, previousReward);
         return existing;
       }
-      const log = { id: makeId(), title, start, end, minutes, planId, taskId, category, reward: { minutes: 0, coins: 0 }, date: todayKey, updatedAt: new Date().toISOString() };
+      const log = { id: makeId(), title, start, end, minutes, planId, taskId, category, reward: { minutes: 0, coins: 0 }, date: currentTodayKey(), updatedAt: new Date().toISOString() };
       state.timeLogs.push(log);
       if (!skipReward) settleTimeLogReward(log);
       return log;
@@ -21832,7 +21869,7 @@
         label: plan.title,
         coins: 0,
         minutes: plan.minutes,
-        date: todayKey,
+        date: currentTodayKey(),
         ts: Date.now()
       });
       state.records = state.records.slice(-500);
@@ -21845,7 +21882,7 @@
         state.history.unshift({
           text: `完成「${linkedTask.name}」`,
           amount: linkedTask.reward,
-          date: todayKey,
+          date: currentTodayKey(),
           time: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })
         });
         state.history = state.history.slice(0, 8);
@@ -21855,7 +21892,7 @@
           label: `完成「${linkedTask.name}」`,
           coins: linkedTask.reward,
           minutes: 0,
-          date: todayKey,
+          date: currentTodayKey(),
           ts: Date.now(),
           fromPlanId: plan.id
         });
@@ -22292,7 +22329,9 @@
       requestAnimationFrame(syncPhotoPanelHeights);
     });
 
-    setInterval(renderPlans, 60 * 1000);
+    setInterval(() => {
+      if (!ensureCurrentDay()) renderPlans();
+    }, 60 * 1000);
 
     if ("serviceWorker" in navigator && location.protocol !== "file:") {
       window.addEventListener("load", () => {
@@ -22301,19 +22340,27 @@
     }
 
     window.addEventListener("online", () => {
+      ensureCurrentDay();
       syncState.syncNow();
     });
 
     window.addEventListener("focus", () => {
+      ensureCurrentDay();
       syncState.syncNow();
     });
 
     document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) syncState.syncNow();
+      if (!document.hidden) {
+        ensureCurrentDay();
+        syncState.syncNow();
+      }
     });
 
     setInterval(() => {
-      if (!document.hidden && syncState.configured()) syncState.syncNow();
+      if (!document.hidden) {
+        ensureCurrentDay();
+        if (syncState.configured()) syncState.syncNow();
+      }
     }, 45 * 1000);
 
     window.addEventListener("beforeunload", () => {
