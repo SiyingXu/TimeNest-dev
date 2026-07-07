@@ -5260,6 +5260,13 @@
       leisure: { name: "娱乐", reward: false, bg: "#ecfdf5", border: "#bbf7d0", accent: "#6ee7b7", text: "#047857" }
     };
 
+    const weeklyCategoryColors = {
+      daily: { bg: "#dbeafe" },
+      study: { bg: "#fbcfe8" },
+      work: { bg: "#fef3c7" },
+      leisure: { bg: "#bbf7d0" }
+    };
+
     const shopItems = [
       { id: "tuebingen-card", category: "city", name: "图宾根城市卡", price: 0, desc: "Base 城市，记录第一段稳定作息。", icon: "TÜ", color: "#eff7f4", region: "德国", mapScope: "germany", zoomTo: "tuebingen-city", stamp: "TUE", x: 42, y: 57, rarity: "base", border: "green", art: "tuebingen", cardAsset: "assets/visual/generated/card-tuebingen-handdrawn.png", cardLine: "内卡河、老城、大学城日常。" },
       { id: "shanghai-card", category: "city", name: "上海城市卡", price: 699, desc: "从世界地图点击中国后出现上海，收藏一张真正想去的城市卡。", icon: "SHA", color: "#eef2ff", region: "中国", mapScope: "china", zoomTo: "shanghai-city", stamp: "SHA", x: 73, y: 55, rarity: "rare", border: "blue", art: "shanghai", cardAsset: "assets/visual/generated/card-shanghai-handdrawn.png", cardLine: "外滩夜景、武康路、咖啡和展览。" },
@@ -19398,6 +19405,16 @@
       });
     }
 
+    function taskDisplayOrder(tasks) {
+      return (Array.isArray(tasks) ? tasks : [])
+        .map((task, index) => ({ task, index }))
+        .sort((left, right) => {
+          if (Boolean(left.task.done) !== Boolean(right.task.done)) return left.task.done ? 1 : -1;
+          return left.index - right.index;
+        })
+        .map(item => item.task);
+    }
+
     function renderTaskCards(selector, tasks) {
       const root = document.querySelector(selector);
       root.innerHTML = "";
@@ -19405,7 +19422,7 @@
         root.innerHTML = `<div class="empty">快来写下今天最重要的三件事吧。</div>`;
         return;
       }
-      tasks.forEach(task => {
+      taskDisplayOrder(tasks).forEach(task => {
         const row = document.createElement("div");
         row.className = `task${task.done ? " done" : ""}${editingTaskId === task.id ? " editing" : ""}`;
         if (editingTaskId === task.id) {
@@ -19804,7 +19821,7 @@
       const cellColor = (day, hour) => {
         const entries = Object.entries(cells[day.key][hour]);
         const [category, minutes] = entries.sort((a, b) => b[1] - a[1])[0];
-        return minutes ? logCategoryStyle(category).bg : "#f2f4f7";
+        return minutes ? weeklyCategoryStyle(category).bg : "#e9edf3";
       };
       const overview = document.querySelector("#weeklyOverview");
       const startDate = days[0].date;
@@ -19828,13 +19845,13 @@
           <div class="weekly-legend">
             ${Object.entries(logCategories).map(([category, meta]) => `
               <div class="weekly-legend-item">
-                <span class="weekly-swatch" style="--swatch-color:${meta.bg}"></span>
+                <span class="weekly-swatch" style="--swatch-color:${weeklyCategoryStyle(category).bg}"></span>
                 <span>${meta.name}</span>
                 <strong>${formatMinutes(categoryTotals[category])}</strong>
               </div>
             `).join("")}
             <div class="weekly-legend-item">
-              <span class="weekly-swatch" style="--swatch-color:#f2f4f7"></span>
+              <span class="weekly-swatch" style="--swatch-color:#e9edf3"></span>
               <span>未记录</span>
               <strong>-</strong>
             </div>
@@ -21764,6 +21781,10 @@
       return logCategories[category] || logCategories.daily;
     }
 
+    function weeklyCategoryStyle(category) {
+      return weeklyCategoryColors[category] || logCategories[category] || logCategories.daily;
+    }
+
     function planTimelineStyle(done) {
       return done
         ? { bg: "#f1f5f9", border: "#cbd5e1", accent: "#94a3b8", text: "#64748b" }
@@ -22243,11 +22264,12 @@
         showToast("先写下一个任务。");
         return;
       }
-      state.tasks.unshift({
+      state.tasks.push({
         id: makeId(),
         name,
         reward: Number(document.querySelector("#taskReward").value),
         done: false,
+        createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
       input.value = "";
