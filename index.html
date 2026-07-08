@@ -5173,6 +5173,7 @@
       if (!target || typeof target !== "object") return false;
       const key = currentTodayKey();
       if ((target.date || key) === key) return false;
+      archiveTimeLogsForWeekly(target);
       target.date = key;
       target.todayDone = 0;
       target.focusMinutes = 0;
@@ -5197,6 +5198,44 @@
         }))
         .filter(segment => /^\d{2}:\d{2}$/.test(segment.start) && /^\d{2}:\d{2}$/.test(segment.end) && segment.minutes > 0)
         .slice(0, 24);
+    }
+
+    function timeLogArchiveFields(log, date = currentTodayKey()) {
+      if (!log || typeof log !== "object" || !log.id || !/^\d{2}:\d{2}$/.test(String(log.start || "")) || !/^\d{2}:\d{2}$/.test(String(log.end || ""))) return null;
+      return {
+        logId: log.id,
+        label: log.title || "时间记录",
+        title: log.title || "",
+        start: log.start,
+        end: log.end,
+        minutes: Math.max(0, Math.floor(Number(log.minutes) || 0)),
+        category: log.category || "daily",
+        date: log.date || date,
+        segments: sanitizeLogSegments(log.segments),
+        updatedAt: log.updatedAt || new Date().toISOString()
+      };
+    }
+
+    function archiveTimeLogsForWeekly(target) {
+      if (!target || typeof target !== "object") return;
+      const logs = Array.isArray(target.timeLogs) ? target.timeLogs : [];
+      target.records = Array.isArray(target.records) ? target.records : [];
+      logs.forEach(log => {
+        const fields = timeLogArchiveFields(log, target.date || currentTodayKey());
+        if (!fields || !fields.minutes) return;
+        const reward = log.reward || {};
+        const hasReward = Boolean((reward.minutes || 0) || (reward.coins || 0));
+        const existingReward = target.records.find(record => record.kind === "time-log-reward" && record.logId === log.id);
+        if (existingReward) {
+          Object.assign(existingReward, fields);
+          return;
+        }
+        if (hasReward) return;
+        const existingHistory = target.records.find(record => record.kind === "time-log-history" && record.logId === log.id);
+        if (existingHistory) Object.assign(existingHistory, fields, { coins: 0 });
+        else target.records.push({ kind: "time-log-history", coins: 0, ts: Date.now(), ...fields });
+      });
+      target.records = target.records.slice(-500);
     }
     const devParams = new URLSearchParams(window.location.search);
     const appScope = location.pathname.includes("/TimeNest-dev") ? "dev" : "prod";
@@ -18035,6 +18074,7 @@
         reward: log.reward || { minutes: 0, coins: 0 },
         segments: sanitizeLogSegments(log.segments)
       }));
+      archiveTimeLogsForWeekly(parsed);
       parsed.history = (parsed.history || []).map(item => ({ ...item, date: item.date || currentTodayKey() }));
       const rolledToToday = rollStateToCurrentDay(parsed, { touchSync: true });
       if (rolledToToday) localStorage.setItem(stateStorageKey, JSON.stringify(parsed));
@@ -19772,21 +19812,28 @@
       ]));
 
       const visibleTimeLogIds = new Set();
-      state.timeLogs.forEach(log => {
+      const addWeeklyLogBlock = (log, options = {}) => {
         const day = byDay[log.date];
-        if (!day) return;
-        visibleTimeLogIds.add(log.id);
+        if (!day) return false;
         const category = logCategories[log.category] ? log.category : "daily";
-        const { start, end } = timeLogRange(log);
-        const minutes = Math.max(0, end - start);
+        const minutes = Math.max(0, Math.floor(Number(log.minutes) || 0));
+        if (!minutes) return false;
         day.minutes += minutes;
         categoryTotals[category] += minutes;
+        if (!/^\d{2}:\d{2}$/.test(String(log.start || "")) || !/^\d{2}:\d{2}$/.test(String(log.end || ""))) return true;
+        const { start, end } = timeLogRange(log);
         hours.forEach(hour => {
           const hourStart = hour * 60;
           const hourEnd = hourStart + 60;
           const overlap = Math.max(0, Math.min(end, hourEnd) - Math.max(start, hourStart));
           if (overlap) cells[day.key][hour][category] += overlap;
         });
+        return true;
+      };
+
+      state.timeLogs.forEach(log => {
+        if (log.id) visibleTimeLogIds.add(log.id);
+        addWeeklyLogBlock(log);
       });
 
       state.records.forEach(record => {
@@ -19794,11 +19841,14 @@
         if ((record.coins || 0) > 0) byDay[record.date].coins += record.coins;
         if (record.kind === "task") byDay[record.date].tasks += 1;
         if (record.kind === "plan") byDay[record.date].plans += record.minutes || 0;
-        if (record.kind === "time-log-reward" && !visibleTimeLogIds.has(record.logId)) {
+        if (["time-log-reward", "time-log-history"].includes(record.kind) && !visibleTimeLogIds.has(record.logId)) {
           const category = categoryFromFocusRecord(record);
           const minutes = record.minutes || 0;
-          byDay[record.date].minutes += minutes;
-          categoryTotals[category] += minutes;
+          const applied = addWeeklyLogBlock({ ...record, category });
+          if (!applied && minutes) {
+            byDay[record.date].minutes += minutes;
+            categoryTotals[category] += minutes;
+          }
         }
       });
 
@@ -21820,7 +21870,7 @@
       if (oldMinutes) state.focusMinutes = Math.max(0, state.focusMinutes - oldMinutes);
       if (oldCoins) state.coins = Math.max(0, state.coins - oldCoins);
       if (!oldMinutes && !oldCoins) removeLegacyFocusReward(log);
-      state.records = state.records.filter(record => record.kind !== "time-log-reward" || record.logId !== log.id);
+      state.records = state.records.filter(record => !["time-log-reward", "time-log-history"].includes(record.kind) || record.logId !== log.id);
       state.history = state.history.filter(item => item.logId !== log.id);
 
       const reward = logRewardFor(log.category, log.minutes);
@@ -21867,11 +21917,13 @@
         existing.segments = cleanSegments;
         existing.updatedAt = new Date().toISOString();
         if (!skipReward) settleTimeLogReward(existing, previousReward);
+        archiveTimeLogsForWeekly(state);
         return existing;
       }
       const log = { id: makeId(), title, start, end, minutes, planId, taskId, category, reward: { minutes: 0, coins: 0 }, segments: cleanSegments, date: currentTodayKey(), updatedAt: new Date().toISOString() };
       state.timeLogs.push(log);
       if (!skipReward) settleTimeLogReward(log);
+      archiveTimeLogsForWeekly(state);
       return log;
     }
 
