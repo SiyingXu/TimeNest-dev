@@ -19506,17 +19506,34 @@
       document.querySelector(".task-menu")?.remove();
     }
 
+    function positionFloatingMenu(menu, container, event, offset = 8) {
+      const rect = container.getBoundingClientRect();
+      const margin = 8;
+      const preferredX = event.clientX - rect.left;
+      const preferredY = event.clientY - rect.top + offset;
+      menu.style.setProperty("--menu-x", `${Math.max(margin, preferredX)}px`);
+      menu.style.setProperty("--menu-y", `${Math.max(margin, preferredY)}px`);
+      container.appendChild(menu);
+      const menuWidth = menu.offsetWidth || 142;
+      const menuHeight = menu.offsetHeight || 88;
+      const maxX = Math.max(margin, container.clientWidth - menuWidth - margin);
+      const maxY = Math.max(margin, container.clientHeight - menuHeight - margin);
+      const x = Math.min(Math.max(margin, preferredX), maxX);
+      const y = preferredY + menuHeight + margin > container.clientHeight
+        ? Math.min(Math.max(margin, event.clientY - rect.top - menuHeight - offset), maxY)
+        : Math.min(Math.max(margin, preferredY), maxY);
+      menu.style.setProperty("--menu-x", `${x}px`);
+      menu.style.setProperty("--menu-y", `${y}px`);
+    }
+
     function openTaskMenu(event, id) {
       event.stopPropagation();
       closeTaskMenu();
       closeTimelineMenu();
       const panel = event.currentTarget.closest(".panel") || document.body;
-      const rect = panel.getBoundingClientRect();
       const task = state.tasks.find(item => item.id === id);
       const menu = document.createElement("div");
       menu.className = "task-menu";
-      menu.style.setProperty("--menu-x", `${Math.max(8, event.clientX - rect.left)}px`);
-      menu.style.setProperty("--menu-y", `${Math.max(8, event.clientY - rect.top + 8)}px`);
       menu.innerHTML = `
         <button data-menu-action="toggle">${task?.done ? "取消完成" : "完成"}</button>
         <button data-menu-action="edit">修改</button>
@@ -19534,7 +19551,7 @@
         closeTaskMenu();
         deleteTask(id);
       });
-      panel.appendChild(menu);
+      positionFloatingMenu(menu, panel, event);
     }
 
     function minutesBetween(start, end) {
@@ -19689,11 +19706,8 @@
       closeTaskMenu();
       const timeline = document.querySelector(".day-timeline");
       if (!timeline) return;
-      const rect = timeline.getBoundingClientRect();
       const menu = document.createElement("div");
       menu.className = "timeline-menu";
-      menu.style.setProperty("--menu-x", `${Math.max(8, event.clientX - rect.left)}px`);
-      menu.style.setProperty("--menu-y", `${Math.max(8, event.clientY - rect.top + 8)}px`);
       if (type === "plan") {
         const plan = state.plans.find(item => item.id === id);
         menu.innerHTML = `
@@ -19727,7 +19741,7 @@
           deleteTimeLog(id);
         });
       }
-      timeline.appendChild(menu);
+      positionFloatingMenu(menu, timeline, event);
     }
 
     function renderHistory() {
