@@ -4136,6 +4136,10 @@
       min-height: 0;
     }
 
+    .photo-control-panel {
+      min-height: 0;
+    }
+
     .photo-list-panel.is-scrollable {
       display: flex;
       flex-direction: column;
@@ -19204,13 +19208,25 @@
       const listPanel = document.querySelector(".photo-list-panel");
       if (!photoView || !controlPanel || !listPanel) return;
       if (!photoView.classList.contains("active") || window.matchMedia("(max-width: 699px)").matches) {
+        controlPanel.style.height = "";
         listPanel.classList.remove("is-scrollable");
         listPanel.style.height = "";
         return;
       }
       requestAnimationFrame(() => {
+        controlPanel.style.height = "";
+        listPanel.style.height = "";
         const controlHeight = Math.ceil(controlPanel.getBoundingClientRect().height);
-        listPanel.style.height = `${controlHeight}px`;
+        const panelTop = Math.min(
+          controlPanel.getBoundingClientRect().top,
+          listPanel.getBoundingClientRect().top
+        );
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight || controlHeight;
+        const bottomInset = window.matchMedia("(min-width: 700px)").matches ? 24 : 88;
+        const availableHeight = Math.floor(viewportHeight - panelTop - bottomInset);
+        const panelHeight = Math.max(controlHeight, availableHeight);
+        controlPanel.style.height = `${panelHeight}px`;
+        listPanel.style.height = `${panelHeight}px`;
         listPanel.classList.add("is-scrollable");
       });
     }
